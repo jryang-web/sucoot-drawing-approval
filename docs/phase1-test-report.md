@@ -55,14 +55,26 @@
 | 公開註冊 signUp | ✅ `signup_disabled` |
 | 登入頁（Chromium 桌面＋iPhone 13 模擬） | ✅ 正常顯示、錯誤密碼提示正確、手機無橫向捲動、無 JS 錯誤 |
 
-### 2.3 尚未測試
+### 2.3 手動測試通過（GitHub Pages 正式網址，2026-11-16）
+網址：https://jryang-web.github.io/sucoot-drawing-approval/（資料庫紀錄已逐筆核對）
+
+| 測試 | 裝置 | 結果 |
+|---|---|---|
+| admin 登入 | 電腦瀏覽器 | ✅ |
+| 管理者建立部門（4 個） | 電腦瀏覽器 | ✅ 稽核紀錄 DEPARTMENT_CREATE ×4 |
+| 管理者建立員工帳號 SC21（系統產生初始密碼） | 電腦瀏覽器 | ✅ Auth 帳號與員工資料正確對應，無孤兒帳號 |
+| SC21 首次登入強制修改密碼 | Android 手機（瀏覽器未註明） | ✅ PASSWORD_CHANGED_BY_SELF |
+| SC21 以新密碼登入 | Android 手機 | ✅ |
+
+### 2.4 尚未測試
 | 項目 | 原因 |
 |---|---|
-| Edge Function 實際建立帳號／重設密碼／停用（Auth ban）／本人改密碼 | 需要管理者密碼登入；測試已寫好（`tests/integration/accounts.test.ts`），待提供測試專用管理者 |
-| 登入後的各頁面操作（瀏覽器） | 同上 |
-| iPhone Safari／Android Chrome／LINE 內建瀏覽器 實機 | 需實機；**手機端尚未驗證**（僅登入頁做過 iPhone 模擬） |
+| Edge Function 重設密碼／停用（Auth ban） | 尚未手動操作；自動化測試已寫好（`tests/integration/accounts.test.ts`），待提供測試專用管理者 |
+| 完整業務流程（申請→兩層審核→發行→簽收→異常補發）在瀏覽器上操作 | 需先建立部門主管、圖管主管、圖管人員帳號 |
+| iPhone Safari／LINE 內建瀏覽器 實機 | 尚未測試 |
+| Android 手機 | 僅完成登入與改密碼；業務頁面尚未測試 |
 
-### 2.4 測試失敗
+### 2.5 測試失敗
 無（首次執行發現「authenticated 無 SELECT 權限」，已以 migration 0006 修正並重跑全數通過）。
 
 ## 3. 採用的暫定規則（未正式定案，可修改）
@@ -82,4 +94,4 @@
 2. 手機實機測試（iPhone Safari、Android Chrome、LINE 內建瀏覽器）。
 3. Security Advisor：`auth_leaked_password_protection` 未啟用（需 Supabase Pro 方案，Dashboard → Auth → Password security）。
 4. 其餘 Advisor 警告為「authenticated 可執行 SECURITY DEFINER RPC」，屬本設計刻意為之（每支 RPC 內部檢查身分與角色）。
-5. GitHub Pages 部署、LINE 通知：未進行，待另行核准。
+5. GitHub Pages：已於 2026-11-16 部署（gh-pages 分支，`npm run deploy:pages`）。LINE 通知：未進行。
