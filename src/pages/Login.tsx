@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { supabase, emailOf } from "../lib/supabase";
 import { ErrorBox } from "../components/ui";
+import { APP_STAGE } from "../config";
 
 export default function Login({ notice }: { notice?: string | null }) {
   const [no, setNo] = useState("");
@@ -19,7 +20,7 @@ export default function Login({ notice }: { notice?: string | null }) {
   return (
     <main style={{ maxWidth: 420 }}>
       <div className="card">
-        <h1>SUCOOT 圖面申請與審核</h1>
+        <h1>SUCOOT 圖面申請與審核{APP_STAGE && <span className="stage">{APP_STAGE}</span>}</h1>
         <form onSubmit={submit}>
           <label htmlFor="no">員工編號</label>
           <input id="no" value={no} onChange={(e) => setNo(e.target.value)} autoComplete="username" autoCapitalize="none" required />

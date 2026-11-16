@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./lib/auth";
 import type { Role } from "./lib/types";
 import Login from "./pages/Login";
@@ -13,12 +13,18 @@ import Employees from "./pages/admin/Employees";
 import Delegations from "./pages/admin/Delegations";
 import Audit from "./pages/admin/Audit";
 import Alerts from "./pages/admin/Alerts";
+import VersionInfo from "./pages/VersionInfo";
+import Footer from "./components/Footer";
+import { APP_NAME, APP_STAGE } from "./config";
 
 export default function App() {
   const { session, me, loading, error, signOut, has } = useAuth();
+  const { pathname } = useLocation();
+  // 版本說明不需登入即可查看
+  if (pathname === "/version") return <><VersionInfo /><Footer /></>;
   if (loading) return <main><p className="muted">載入中…</p></main>;
-  if (!session || !me) return <Login notice={error} />;
-  if (me.must_change_password) return <ChangePassword forced />;
+  if (!session || !me) return <><Login notice={error} /><Footer /></>;
+  if (me.must_change_password) return <><ChangePassword forced /><Footer /></>;
 
   // 依角色保護路由：沒有權限的網址一律導回「我的案件」（後端 RPC 另有權限檢查）
   const guard = (role: Role, el: ReactElement) => (has(role) ? el : <Navigate to="/my" replace />);
@@ -26,7 +32,7 @@ export default function App() {
   return (
     <>
       <header className="top">
-        <span className="brand">SUCOOT 圖面申請</span>
+        <span className="brand">{APP_NAME}{APP_STAGE && <span className="stage">{APP_STAGE}</span>}</span>
         <span>{me.name}（{me.employee_no}）· {me.department_name}</span>
         <button onClick={signOut}>登出</button>
       </header>
@@ -65,6 +71,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/my" replace />} />
         </Routes>
       </main>
+      <Footer />
     </>
   );
 }
