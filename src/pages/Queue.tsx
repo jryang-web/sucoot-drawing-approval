@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { query } from "../lib/api";
 import type { RequestRow, Status } from "../lib/types";
@@ -13,9 +12,8 @@ const KINDS: Record<string, { title: string; statuses: Status[] }> = {
   issue: { title: "待發行／發行異常", statuses: ["PENDING_ISSUE", "ISSUE_ABNORMAL"] },
 };
 
-export default function Queue({ all }: { all?: boolean }) {
-  const { kind } = useParams();
-  const cfg = all ? null : KINDS[kind ?? ""];
+export default function Queue({ all, kind }: { all?: boolean; kind?: "l1" | "l2" | "issue" }) {
+  const cfg = all || !kind ? null : KINDS[kind];
   const [status, setStatus] = useState<string>("");
   const [rows, setRows] = useState<RequestRow[]>([]);
   const [error, setError] = useState<unknown>(null);
