@@ -1,0 +1,45 @@
+import { useState, type FormEvent } from "react";
+import { accountAction } from "../lib/api";
+import { useAuth } from "../lib/auth";
+import { ErrorBox, useAction } from "../components/ui";
+
+export default function ChangePassword({ forced }: { forced?: boolean }) {
+  const { reload, signOut } = useAuth();
+  const [cur, setCur] = useState("");
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [done, setDone] = useState(false);
+  const { busy, error, setError, run } = useAction();
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (pw !== pw2) { setError(new Error("兩次輸入的新密碼不一致")); return; }
+    if (await run(() => accountAction({ action: "change_own_password", current_password: cur, new_password: pw }))) {
+      setDone(true); setCur(""); setPw(""); setPw2("");
+      await reload();
+    }
+  };
+
+  return (
+    <main style={{ maxWidth: 460 }}>
+      <div className="card">
+        <h1>{forced ? "首次登入：請修改密碼" : "修改密碼"}</h1>
+        {forced && <p className="muted">管理者設定的初始密碼必須修改後才能使用系統。</p>}
+        <form onSubmit={submit}>
+          <label>目前密碼</label>
+          <input type="password" value={cur} onChange={(e) => setCur(e.target.value)} autoComplete="current-password" required />
+          <label>新密碼（至少 12 碼，含大寫、小寫、數字、符號其中三類）</label>
+          <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" minLength={12} required />
+          <label>再次輸入新密碼</label>
+          <input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" minLength={12} required />
+          <ErrorBox error={error} />
+          {done && !forced && <div className="okmsg">密碼已更新</div>}
+          <div className="row" style={{ marginTop: 12 }}>
+            <button className="primary" disabled={busy}>更新密碼</button>
+            {forced && <button type="button" onClick={signOut}>登出</button>}
+          </div>
+        </form>
+      </div>
+    </main>
+  );
+}
