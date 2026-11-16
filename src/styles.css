@@ -46,3 +46,10 @@ footer.foot { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: ce
 .markdown td:first-child, .markdown th:first-child, .markdown td:nth-child(2) { white-space: nowrap; }
 .markdown pre { background: #f4f6f9; padding: 10px; border-radius: 8px; overflow-x: auto; }
 .markdown code { font-family: ui-monospace, monospace; font-size: .9em; }
+/* PWA */
+body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+.pwa-banner { position: sticky; top: 0; z-index: 20; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+  background: #fffaeb; color: #3d2a00; border-bottom: 1px solid #fedf89; padding: 8px 16px; font-size: .9rem; }
+.pwa-banner button { padding: 6px 12px; }
+.linkbtn { background: none; border: none; padding: 0; color: var(--primary); text-decoration: underline; font-size: inherit; cursor: pointer; }
+.install-help { flex-basis: 100%; max-width: 480px; text-align: left; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 10px; color: var(--text); font-size: .9rem; }
