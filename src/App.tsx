@@ -15,22 +15,24 @@ import Audit from "./pages/admin/Audit";
 import Alerts from "./pages/admin/Alerts";
 import VersionInfo from "./pages/VersionInfo";
 import Footer from "./components/Footer";
+import PwaBanner from "./components/PwaBanner";
 import { APP_NAME, APP_STAGE } from "./config";
 
 export default function App() {
   const { session, me, loading, error, signOut, has } = useAuth();
   const { pathname } = useLocation();
   // 版本說明不需登入即可查看
-  if (pathname === "/version") return <><VersionInfo /><Footer /></>;
+  if (pathname === "/version") return <><PwaBanner /><VersionInfo /><Footer /></>;
   if (loading) return <main><p className="muted">載入中…</p></main>;
-  if (!session || !me) return <><Login notice={error} /><Footer /></>;
-  if (me.must_change_password) return <><ChangePassword forced /><Footer /></>;
+  if (!session || !me) return <><PwaBanner /><Login notice={error} /><Footer /></>;
+  if (me.must_change_password) return <><PwaBanner /><ChangePassword forced /><Footer /></>;
 
   // 依角色保護路由：沒有權限的網址一律導回「我的案件」（後端 RPC 另有權限檢查）
   const guard = (role: Role, el: ReactElement) => (has(role) ? el : <Navigate to="/my" replace />);
   const tab = (to: string, label: string) => <NavLink to={to} className={({ isActive }) => (isActive ? "active" : "")}>{label}</NavLink>;
   return (
     <>
+      <PwaBanner />
       <header className="top">
         <span className="brand">{APP_NAME}{APP_STAGE && <span className="stage">{APP_STAGE}</span>}</span>
         <span>{me.name}（{me.employee_no}）· {me.department_name}</span>
