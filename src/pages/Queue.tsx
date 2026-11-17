@@ -19,12 +19,13 @@ export default function Queue({ all, kind }: { all?: boolean; kind?: "l1" | "l2"
   const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
+    const statuses = all || !kind ? null : KINDS[kind].statuses;
     let q = supabase.from("v_requests").select("*").order("updated_at", { ascending: false }).limit(200);
-    if (cfg) q = q.in("status", cfg.statuses);
+    if (statuses) q = q.in("status", statuses);
     else if (status === "OVERDUE") q = q.eq("is_receipt_overdue", true);
     else if (status) q = q.eq("status", status);
     query<RequestRow[]>(q).then(setRows).catch(setError);
-  }, [kind, all, status]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [kind, all, status]);
 
   return (
     <div className="card">

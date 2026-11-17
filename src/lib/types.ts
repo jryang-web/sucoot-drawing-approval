@@ -26,3 +26,5 @@ export interface Item {
   urgency_reason: string | null; remark: string | null; downgrade_reason: string | null;
   receipt_status: "PENDING" | "RECEIVED" | "ABNORMAL";
 }
+/** 員工通訊錄（v_employee_directory）：一般員工可見的最小欄位 */
+export interface DirectoryEntry { id: string; employee_no: string; name: string; department_id: string; is_active: boolean }

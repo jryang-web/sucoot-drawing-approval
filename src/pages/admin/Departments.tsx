@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { query, rpc } from "../../lib/api";
 import type { Department } from "../../lib/types";
@@ -9,8 +9,12 @@ export default function Departments() {
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const act = useAction();
-  const load = () => query<Department[]>(supabase.from("departments").select("*").order("code")).then(setRows).catch(act.setError);
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const { setError } = act;
+  const load = useCallback(
+    () => query<Department[]>(supabase.from("departments").select("*").order("code")).then(setRows).catch(setError),
+    [setError],
+  );
+  useEffect(() => { load(); }, [load]);
 
   const save = (d: Partial<Department>, reason?: string) =>
     act.run(async () => { await rpc("admin_upsert_department", { p_id: d.id ?? null, p_code: d.code, p_name: d.name, p_is_active: d.is_active ?? true, p_reason: reason ?? null }); await load(); });

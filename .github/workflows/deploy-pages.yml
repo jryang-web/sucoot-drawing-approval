@@ -1,4 +1,4 @@
-# main 有更新時，自動建置前端並發布到 gh-pages 分支（GitHub Pages 來源：gh-pages / root）
+# main 有更新時：型別檢查 → ESLint → 建置 → 發布到 gh-pages 分支（GitHub Pages 來源：gh-pages / root）
 # 前端只包含 Supabase publishable key（可公開），不含任何密鑰。
 name: Deploy to GitHub Pages
 
@@ -24,6 +24,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # 型別檢查與 ESLint 未通過就不部署
+      - run: npm run typecheck
+      - run: npm run lint
       - run: npm run build
       - name: Publish dist/ to gh-pages
         env:

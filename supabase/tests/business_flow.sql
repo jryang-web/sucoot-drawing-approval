@@ -91,6 +91,18 @@ begin
     pg_temp.run(u2, format('select count(*)::text from public.drawing_requests where id = %L', r1)), 'OK:0');
   res := res || pg_temp.chk('X02 TEST007 看不到製造部案件（RLS）',
     pg_temp.run(u7, format('select count(*)::text from public.v_requests where id = %L', r1)), 'OK:0');
+  res := res || pg_temp.chk('X28 一般員工讀 employees 只看得到自己',
+    pg_temp.run(u1, 'select count(*)::text from public.employees'), 'OK:1');
+  res := res || pg_temp.chk('X29 一般員工讀 employee_roles 只看得到自己的角色',
+    pg_temp.run(u1, format('select count(*)::text from public.employee_roles where employee_id <> %L', e1)), 'OK:0');
+  res := res || pg_temp.chk('X30 通訊錄可看到同事姓名（含 8 位測試員工）',
+    pg_temp.run(u1, 'select (count(*) >= 8)::text from public.v_employee_directory'), 'OK:true');
+  res := res || pg_temp.chk('X31 通訊錄不提供 auth_user_id',
+    pg_temp.run(u1, 'select auth_user_id::text from public.v_employee_directory limit 1'), 'column "auth_user_id" does not exist');
+  res := res || pg_temp.chk('X32 系統管理員可讀完整員工資料',
+    pg_temp.run(u6, 'select (count(*) >= 8)::text from public.employees'), 'OK:true');
+  res := res || pg_temp.chk('X33 主管查看所轄案件時可看到申請人姓名（v_requests）',
+    pg_temp.run(u3, format('select applicant_name || ''/'' || applicant_no from public.v_requests where id = %L', r1)), 'OK:測試員工A/TEST001');
   res := res || pg_temp.chk('X03 TEST002 不可修改他人申請',
     pg_temp.run(u2, format('select public.save_draft(%L, null, %L::jsonb)', r1, item1)), 'FORBIDDEN');
   res := res || pg_temp.chk('X04 前端直接 UPDATE 案件狀態被拒（無寫入權限）',
@@ -301,6 +313,7 @@ begin
   res := res || pg_temp.chk('S23b 停用帳號查詢資料 → 0 筆',
     pg_temp.run(u2, 'select count(*)::text from public.v_requests'), 'OK:0');
   res := res || pg_temp.chk('S23c 停用帳號呼叫 me() → 拒絕', pg_temp.run(u2, 'select public.me()::text'), 'ACCOUNT_INACTIVE');
+  res := res || pg_temp.chk('X34 停用帳號查詢通訊錄 → 0 筆', pg_temp.run(u2, 'select count(*)::text from public.v_employee_directory'), 'OK:0');
   begin
     perform public.svc_set_active(u6, e6, false, 'x'); v := 'OK:';
   exception when others then v := sqlerrm; end;
@@ -319,7 +332,7 @@ begin
   raise exception 'TEST_RESULT %', jsonb_build_object('fatal', null,
     'total', jsonb_array_length(res),
     'passed', (select count(*) from jsonb_array_elements(res) x where (x->>'pass')::boolean),
-    'failures', coalesce((select jsonb_agg(x) from jsonb_array_elements(res) x where not (x->>'pass')::boolean), '[]')));
+    'failures', coalesce((select jsonb_agg(x) from jsonb_array_elements(res) x where not (x->>'pass')::boolean), '[]'));
 exception when others then
   if sqlerrm like 'TEST_RESULT%' then raise; end if;
   raise exception 'TEST_RESULT %', jsonb_build_object('fatal', sqlerrm, 'results', res);
