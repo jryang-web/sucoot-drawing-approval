@@ -52,8 +52,8 @@ export default function RequestForm() {
             {items.length > 1 && <button type="button" className="danger" onClick={() => setItems((xs) => xs.filter((_, j) => j !== i))}>刪除</button>}
           </div>
           <div className="grid2">
-            <div><label>圖號 *</label><input value={it.drawing_no} onChange={(e) => set(i, { drawing_no: e.target.value })} /></div>
-            <div><label>圖名 *</label><input value={it.drawing_name} onChange={(e) => set(i, { drawing_name: e.target.value })} /></div>
+            <div><label>產品編碼 *</label><input value={it.drawing_no} onChange={(e) => set(i, { drawing_no: e.target.value })} /></div>
+            <div><label>品名/規格 *</label><input value={it.drawing_name} onChange={(e) => set(i, { drawing_name: e.target.value })} /></div>
             <div><label>版次（選填）</label><input value={it.revision} onChange={(e) => set(i, { revision: e.target.value })} /></div>
             <div><label>需求日期 *</label><input type="date" value={it.needed_date} onChange={(e) => set(i, { needed_date: e.target.value })} /></div>
           </div>
@@ -63,7 +63,7 @@ export default function RequestForm() {
           <label>備註</label><input value={it.remark} onChange={(e) => set(i, { remark: e.target.value })} />
         </fieldset>
       ))}
-      <button type="button" onClick={() => setItems((xs) => [...xs, blank()])}>＋ 新增一筆圖號</button>
+      <button type="button" onClick={() => setItems((xs) => [...xs, blank()])}>＋ 新增一筆產品編碼</button>
       <label>整案備註</label><textarea value={note} onChange={(e) => setNote(e.target.value)} />
       <ErrorBox error={error} />
       <div className="row" style={{ marginTop: 12 }}>

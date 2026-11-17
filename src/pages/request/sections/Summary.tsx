@@ -2,7 +2,7 @@ import { Card, StatusBadge } from "../../../components/ui";
 import { fmt } from "../../../lib/labels";
 import { activeClaim, type SectionProps } from "../types";
 
-/** 案件基本資料與圖號明細 */
+/** 案件基本資料與產品編碼明細 */
 export default function Summary({ d, name }: SectionProps) {
   const { r, items } = d;
   const claim = activeClaim(d);
@@ -21,9 +21,9 @@ export default function Summary({ d, name }: SectionProps) {
         {r.note && <><label>整案備註</label><div>{r.note}</div></>}
       </Card>
 
-      <Card title={`圖號明細（${items.length} 筆）`}>
+      <Card title={`產品編碼明細（${items.length} 筆）`}>
         <div className="tablewrap"><table>
-          <thead><tr><th>#</th><th>圖號／圖名</th><th>版次</th><th>用途</th><th>需求日</th><th>急件</th><th>簽收</th></tr></thead>
+          <thead><tr><th>#</th><th>產品編碼／品名/規格</th><th>版次</th><th>用途</th><th>需求日</th><th>急件</th><th>簽收</th></tr></thead>
           <tbody>{items.map((it) => (
             <tr key={it.id}>
               <td>{it.line_no}</td>

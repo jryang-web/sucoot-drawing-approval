@@ -17,7 +17,7 @@ export default function AbnormalSection({ d, me, has, busy, run }: SectionProps)
       {canReissue && abnormal.some((a) => a.status === "OPEN") && <>
         <label>補發說明（選填）</label><input value={lineNote} onChange={(e) => setLineNote(e.target.value)} />
       </>}
-      <div className="tablewrap"><table><thead><tr><th>圖號</th><th>原因</th><th>狀態</th><th></th></tr></thead><tbody>
+      <div className="tablewrap"><table><thead><tr><th>產品編碼</th><th>原因</th><th>狀態</th><th></th></tr></thead><tbody>
         {abnormal.map((a) => (
           <tr key={a.id}>
             <td>{items.find((i) => i.id === a.item_id)?.drawing_no}</td>
@@ -28,7 +28,7 @@ export default function AbnormalSection({ d, me, has, busy, run }: SectionProps)
                 if (await run(() => rpc("reissue_item", { p_abnormal_id: a.id, p_line_note: lineNote || null }), "已登記補發")) setLineNote("");
               }}>登記補發</button>}
               {a.status === "REISSUED" && isOwner && <button className="primary" disabled={busy}
-                onClick={() => run(() => rpc("confirm_reissued_item", { p_abnormal_id: a.id }), "已確認補發圖號")}>確認收到補發</button>}
+                onClick={() => run(() => rpc("confirm_reissued_item", { p_abnormal_id: a.id }), "已確認補發產品編碼")}>確認收到補發</button>}
             </td>
           </tr>))}
       </tbody></table></div>

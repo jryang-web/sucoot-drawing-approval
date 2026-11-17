@@ -2,7 +2,7 @@ import { useState } from "react";
 import { rpc } from "../../../lib/api";
 import type { SectionProps } from "../types";
 
-/** 案件負責人：整案簽收、回報個別圖號異常 */
+/** 案件負責人：整案簽收、回報個別產品編碼異常 */
 export default function ReceiptActions({ d, me, busy, run }: SectionProps) {
   const { r, items } = d;
   const [reasons, setReasons] = useState<Record<string, string>>({});
@@ -14,7 +14,7 @@ export default function ReceiptActions({ d, me, busy, run }: SectionProps) {
       <h2>簽收</h2>
       {r.status === "PENDING_RECEIPT" && <button className="primary" disabled={busy}
         onClick={() => run(() => rpc("confirm_receipt", { p_id: r.id, p_expected_version: r.version }), "已完成簽收")}>確認整案收到</button>}
-      <h2 style={{ marginTop: 12 }}>回報個別圖號異常</h2>
+      <h2 style={{ marginTop: 12 }}>回報個別產品編碼異常</h2>
       {items.filter((i) => i.receipt_status !== "ABNORMAL").map((i) => (
         <div key={i.id}><label>{i.drawing_no} 異常原因（填寫即回報）</label>
           <input value={reasons[i.id] ?? ""} onChange={(e) => setReasons({ ...reasons, [i.id]: e.target.value })} /></div>

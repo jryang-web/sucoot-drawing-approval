@@ -18,7 +18,7 @@ export function RequestList({ rows }: { rows: RequestRow[] }) {
             <StatusBadge status={r.status} overdue={r.is_receipt_overdue} />
           </div>
           <div className="muted">
-            {r.applicant_name}（{r.department_name}）· {r.item_count} 筆圖號{r.is_urgent ? " · 急件" : ""}
+            {r.applicant_name}（{r.department_name}）· {r.item_count} 筆產品編碼{r.is_urgent ? " · 急件" : ""}
             {r.owner_id !== r.applicant_id && ` · 負責人：${r.owner_name}`}
           </div>
           <div className="muted">更新：{fmt(r.updated_at)}{r.receipt_due_date && ` · 簽收期限：${r.receipt_due_date}`}</div>

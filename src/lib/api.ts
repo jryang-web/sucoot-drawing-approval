@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 
 export class ApiError extends Error {
   constructor(public code: string, message: string) {
-    super(message);
+    super(message.replaceAll("圖號", "產品編碼").replaceAll("圖名", "品名/規格"));
   }
 }
 
