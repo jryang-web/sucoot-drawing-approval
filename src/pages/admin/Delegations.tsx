@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { query, rpc } from "../../lib/api";
 import type { Employee } from "../../lib/types";
@@ -13,14 +13,15 @@ export default function Delegations() {
   const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
   const [f, setF] = useState({ principal: "", delegate: "", level: "1", from: today, to: today, reason: "" });
   const act = useAction();
-  const load = async () => {
+  const { setError } = act;
+  const load = useCallback(async () => {
     const [d, e] = await Promise.all([
       query<Delegation[]>(supabase.from("review_delegations").select("*").order("created_at", { ascending: false })),
       query<Employee[]>(supabase.from("employees").select("*").eq("is_active", true).order("employee_no")),
     ]);
     setRows(d); setEmps(e);
-  };
-  useEffect(() => { load().catch(act.setError); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => { load().catch(setError); }, [load, setError]);
   const name = (id: string) => { const e = emps.find((x) => x.id === id); return e ? `${e.name}（${e.employee_no}）` : id; };
   const empSelect = (v: string, on: (v: string) => void) => (
     <select value={v} onChange={(e) => on(e.target.value)}><option value="">請選擇</option>

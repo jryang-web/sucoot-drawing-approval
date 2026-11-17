@@ -6,7 +6,7 @@ import Login from "./pages/Login";
 import ChangePassword from "./pages/ChangePassword";
 import MyRequests from "./pages/MyRequests";
 import RequestForm from "./pages/RequestForm";
-import RequestDetail from "./pages/RequestDetail";
+import RequestDetail from "./pages/request/RequestDetail";
 import Queue from "./pages/Queue";
 import Departments from "./pages/admin/Departments";
 import Employees from "./pages/admin/Employees";

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { accountAction, query, rpc } from "../../lib/api";
 import type { Department, Employee, Role } from "../../lib/types";
@@ -43,7 +43,8 @@ export default function Employees() {
   const [edit, setEdit] = useState({ name: "", department_id: "", roles: [] as Role[], mgr: [] as string[], reason: "" });
   const act = useAction();
 
-  const load = async () => {
+  const { setError } = act;
+  const load = useCallback(async () => {
     const [e, d, r, m] = await Promise.all([
       query<Employee[]>(supabase.from("employees").select("*").order("employee_no")),
       query<Department[]>(supabase.from("departments").select("*").order("code")),
@@ -51,8 +52,8 @@ export default function Employees() {
       query<MgrRow[]>(supabase.from("manager_departments").select("manager_id,department_id")),
     ]);
     setEmps(e); setDepts(d); setRoles(r); setMgr(m);
-  };
-  useEffect(() => { load().catch(act.setError); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => { load().catch(setError); }, [load, setError]);
 
   const rolesOf = (id: string) => roles.filter((r) => r.employee_id === id).map((r) => r.role);
   const mgrOf = (id: string) => mgr.filter((m) => m.manager_id === id).map((m) => m.department_id);
