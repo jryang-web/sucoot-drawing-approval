@@ -1,41 +1,19 @@
-import { Card, StatusBadge } from "../../../components/ui";
+import { StatusBadge } from "../../../components/ui";
 import { fmt } from "../../../lib/labels";
-import { activeClaim, type SectionProps } from "../types";
+import type { SectionProps } from "../types";
 
-/** 案件基本資料與產品編碼明細 */
-export default function Summary({ d, name }: SectionProps) {
-  const { r, items } = d;
-  const claim = activeClaim(d);
-  return (
-    <>
-      <Card title={r.request_no} right={<StatusBadge status={r.status} overdue={r.is_receipt_overdue} />}>
-        <div className="grid2">
-          <div><label>原申請人</label>{r.applicant_name}（{r.applicant_no}）</div>
-          <div><label>目前負責人</label>{r.owner_name}（{r.owner_no}）</div>
-          <div><label>部門</label>{r.department_name}</div>
-          <div><label>送審輪次</label>{r.round || "—"}</div>
-          <div><label>發行時間</label>{fmt(r.issued_at)}</div>
-          <div><label>簽收期限</label>{r.receipt_due_date ?? "—"}{r.is_receipt_overdue && <span className="badge danger" style={{ marginLeft: 6 }}>逾期</span>}</div>
-          {claim && <div><label>認領人</label>{name(claim.staff_id)}</div>}
-        </div>
-        {r.note && <><label>整案備註</label><div>{r.note}</div></>}
-      </Card>
-
-      <Card title={`產品編碼明細（${items.length} 筆）`}>
-        <div className="tablewrap"><table>
-          <thead><tr><th>#</th><th>產品編碼／品名/規格</th><th>版次</th><th>用途</th><th>需求日</th><th>急件</th><th>簽收</th></tr></thead>
-          <tbody>{items.map((it) => (
-            <tr key={it.id}>
-              <td>{it.line_no}</td>
-              <td><strong>{it.drawing_no}</strong><br />{it.drawing_name}{it.remark && <div className="muted">{it.remark}</div>}</td>
-              <td>{it.revision ?? "—"}</td><td>{it.purpose}</td><td>{it.needed_date}</td>
-              <td>{it.is_urgent ? <span className="badge warn" title={it.urgency_reason ?? ""}>急件</span>
-                : it.downgrade_reason ? <span className="muted">已調降：{it.downgrade_reason}</span> : "—"}</td>
-              <td>{it.receipt_status === "RECEIVED" ? "已收" : it.receipt_status === "ABNORMAL" ? <span className="badge danger">異常</span> : "—"}</td>
-            </tr>))}
-          </tbody>
-        </table></div>
-      </Card>
-    </>
-  );
+export default function Summary({ d }: SectionProps) {
+  const {r,items}=d;
+  return <>
+    <section className="r8-card"><h2>{r.request_no} <StatusBadge status={r.status} overdue={r.is_receipt_overdue}/></h2>
+      <div className="r8-kv">
+        <div><small>申請人／部門</small><b>{r.applicant_name}／{r.department_name}</b></div>
+        <div><small>首次正式申請日期</small><b>{fmt(d.revisions[0]?.submitted_at ?? null)}</b></div>
+        <div><small>整案用途</small><b>{Array.from(new Set(items.map(i=>i.purpose))).join("、")}</b></div>
+        <div><small>優先順序</small><b>{items.some(i=>i.is_urgent)?"急件":"一般件"}</b></div>
+      </div>{r.note && <p>{r.note}</p>}
+      <details><summary>案件資料</summary><p>目前負責人：{r.owner_name}（{r.owner_no}）｜送審輪次：{r.round}</p><p>發行時間：{fmt(r.issued_at)}｜簽收期限：{r.receipt_due_date??"—"}</p></details>
+    </section>
+    <section className="r8-card"><h2>產品明細（{items.length} 筆）</h2>{items.map(i=><div className="r8-case-row" key={i.id}><b>{i.line_no}. {i.drawing_no}</b><span>{i.drawing_name} {i.revision} {i.remark} {i.needed_date}</span></div>)}</section>
+  </>;
 }

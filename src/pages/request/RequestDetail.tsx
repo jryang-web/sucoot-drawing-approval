@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
-import { Card, ErrorBox, useAction } from "../../components/ui";
+import { ErrorBox, useAction } from "../../components/ui";
 import { useRequestDetail } from "./useRequestDetail";
 import type { SectionProps } from "./types";
 import Summary from "./sections/Summary";
@@ -37,8 +37,9 @@ export default function RequestDetail() {
 
   return (
     <>
+      <div className="r8-toolbar"><Link to="/my" className="r8-btn">← 返回工作首頁</Link><span>{me.employee_no}｜{me.department_name}</span></div>
       <Summary {...props} />
-      <Card title="操作">
+      <section className="r8-card r8-work">
         {msg && <div className="okmsg">{msg}</div>}
         <ErrorBox error={act.error} />
         <ApplicantActions {...props} />
@@ -48,8 +49,8 @@ export default function RequestDetail() {
         <ReceiptActions {...props} />
         <AbnormalSection {...props} />
         <AdminActions {...props} />
-      </Card>
-      <HistorySection {...props} />
+      </section>
+      <details className="r8-card"><summary>審核與案件歷程</summary><HistorySection {...props} /></details>
     </>
   );
 }

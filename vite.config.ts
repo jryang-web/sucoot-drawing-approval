@@ -31,6 +31,9 @@ function serviceWorker(): Plugin {
 
 // base "./"：搭配 HashRouter，可直接部署到 GitHub Pages 子路徑
 export default defineConfig({
+  server: { host: "127.0.0.1", proxy: Object.fromEntries(
+    ["/auth/v1", "/rest/v1", "/functions/v1"].map(path => [path, "http://127.0.0.1:54329"])
+  ) },
   base: "./",
   plugins: [react(), serviceWorker()],
   define: {

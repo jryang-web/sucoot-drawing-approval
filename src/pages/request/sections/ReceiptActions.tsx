@@ -13,7 +13,7 @@ export default function ReceiptActions({ d, me, busy, run }: SectionProps) {
     <div style={{ marginBottom: 12 }}>
       <h2>簽收</h2>
       {r.status === "PENDING_RECEIPT" && <button className="primary" disabled={busy}
-        onClick={() => run(() => rpc("confirm_receipt", { p_id: r.id, p_expected_version: r.version }), "已完成簽收")}>確認整案收到</button>}
+        onClick={() => confirm("第一次確認：全部產品圖面均已收到？") && confirm("第二次確認：結案後永久唯讀。確定？") && run(() => rpc("confirm_receipt", { p_id: r.id, p_expected_version: r.version }), "已完成簽收")}>確認整案收到</button>}
       <h2 style={{ marginTop: 12 }}>回報個別產品編碼異常</h2>
       {items.filter((i) => i.receipt_status !== "ABNORMAL").map((i) => (
         <div key={i.id}><label>{i.drawing_no} 異常原因（填寫即回報）</label>
