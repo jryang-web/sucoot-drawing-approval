@@ -28,20 +28,22 @@ class Bridge(BaseHTTPRequestHandler):
             class Buffer:
                 def makefile(self, *args):
                     return BytesIO(proc.stdout)
-            response = http.client.HTTPResponse(Buffer())
+            response = http.client.HTTPResponse(Buffer(), method=self.command)
             response.begin()
             body = response.read()
             self.send_response(response.status)
             for key in ('Content-Type', 'Content-Range', 'Preference-Applied'):
                 if value := response.getheader(key):
                     self.send_header(key, value)
-            self.send_header('Content-Length', str(len(body)))
+            content_length = response.getheader('Content-Length') if self.command == 'HEAD' else str(len(body))
+            if content_length is not None:
+                self.send_header('Content-Length', content_length)
             self.end_headers()
             self.wfile.write(body)
         except (ValueError, OSError, http.client.HTTPException, subprocess.TimeoutExpired):
             self.send_error(502)
 
-    do_GET = do_POST = do_PATCH = do_PUT = do_DELETE = forward
+    do_HEAD = do_GET = do_POST = do_PATCH = do_PUT = do_DELETE = forward
 
 
 ThreadingHTTPServer(('127.0.0.1', 54329), Bridge).serve_forever()

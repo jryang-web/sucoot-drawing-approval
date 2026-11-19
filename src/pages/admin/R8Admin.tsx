@@ -18,7 +18,8 @@ export default function R8Admin() {
       supabase.from("v_requests").select("id",{count:"exact",head:true}).eq("is_receipt_overdue",true),
       rpc<unknown[]>("admin_alerts")
     ]).then(([employees,abnormal,overdue,alerts])=>{
-      for(const result of [employees,abnormal,overdue])if(result.error)throw result.error;
+      for(const result of [employees,abnormal,overdue])if(result.error)throw new Error(result.error.message || `統計查詢失敗（HTTP ${result.status}）`);
+      if ([employees,abnormal,overdue].some(result=>result.count===null)) throw new Error("統計查詢未回傳筆數");
       setCounts([employees.count??0,abnormal.count??0,alerts.length,overdue.count??0]);
     }).catch(setError);
   },[]);
