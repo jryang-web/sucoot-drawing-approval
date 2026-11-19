@@ -7,7 +7,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const EMAIL_DOMAIN = "login.sucoot.com";
-const MIN_PASSWORD = 12;
+
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -56,15 +56,6 @@ function generatePassword(length = 16): string {
   return chars.join("");
 }
 
-function checkPassword(pw: unknown): string {
-  if (typeof pw !== "string" || pw.length < MIN_PASSWORD) {
-    throw new HttpError(400, "WEAK_PASSWORD", `密碼至少 ${MIN_PASSWORD} 碼`);
-  }
-  const classes = [/[A-Z]/, /[a-z]/, /[0-9]/, /[^A-Za-z0-9]/].filter((r) => r.test(pw)).length;
-  if (classes < 3) throw new HttpError(400, "WEAK_PASSWORD", "密碼需包含大寫、小寫、數字、符號其中至少三類");
-  return pw;
-}
-
 // 資料庫錯誤格式為 "CODE: 訊息"
 async function rpc<T = unknown>(fn: string, args: Record<string, unknown>): Promise<T> {
   const { data, error } = await admin.rpc(fn, args);
@@ -91,24 +82,24 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body?.action;
 
+    const client = createClient(SUPABASE_URL, ANON_KEY, {
+      global: {headers: {Authorization: `Bearer ${token}`}},
+      auth: {persistSession:false,autoRefreshToken:false},
+    });
     switch (action) {
       // 員工本人修改密碼（首次登入強制修改）
       case "change_own_password": {
-        const newPw = checkPassword(body.new_password);
-        if (typeof body.current_password !== "string") throw new HttpError(400, "INVALID_INPUT", "請輸入目前密碼");
-        if (body.current_password === newPw) throw new HttpError(400, "WEAK_PASSWORD", "新密碼不可與目前密碼相同");
-        const verifier = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-        const { error: signErr } = await verifier.auth.signInWithPassword({ email: caller.email!, password: body.current_password });
-        if (signErr) throw new HttpError(400, "WRONG_PASSWORD", "目前密碼不正確");
-        await verifier.auth.signOut({ scope: "local" }).catch(() => {}); // 只結束驗證用的 session
-        const { error } = await admin.auth.admin.updateUserById(caller.id, { password: newPw });
-        if (error) throw new HttpError(400, "AUTH_ERROR", error.message);
-        await rpc("svc_password_changed", { p_auth_user_id: caller.id });
-        return json(200, { ok: true });
+        const result = await client.rpc("change_employee_password", {
+          p_current:body.current_password,p_new:body.new_password,p_confirmation:body.confirm_password ?? null,
+        });
+        if(result.error)throw new HttpError(400,result.error.message.split(":")[0],result.error.message);
+        return json(200,result.data);
       }
 
       // 管理者建立帳號：Auth 帳號 + 員工資料 + 角色 + 管轄；失敗時刪除剛建立的 Auth 帳號
       case "create_account": {
+        const { error: sessionError } = await client.rpc("me");
+        if(sessionError) throw new HttpError(401,"SESSION_REVOKED","請重新登入");
         const employeeNo = String(body.employee_no ?? "").trim();
         const name = String(body.name ?? "").trim();
         if (!name) throw new HttpError(400, "INVALID_INPUT", "請輸入姓名");
@@ -139,27 +130,14 @@ Deno.serve(async (req) => {
       }
 
       // 管理者重設密碼：產生新密碼，並要求下次登入修改
-      case "reset_password": {
-        const authId = await rpc<string>("svc_get_employee_auth", { p_caller_auth: caller.id, p_employee_id: body.employee_id });
-        if (authId === caller.id) throw new HttpError(403, "FORBIDDEN", "不可透過管理後台重設自己的密碼");
-        const password = generatePassword();
-        const { error } = await admin.auth.admin.updateUserById(authId, { password });
-        if (error) throw new HttpError(400, "AUTH_ERROR", error.message);
-        await rpc("svc_after_password_reset", { p_caller_auth: caller.id, p_employee_id: body.employee_id, p_reason: body.reason ?? null });
-        return json(200, { ok: true, new_password: password });
-      }
-
-      // 管理者啟用／停用：業務權限立即失效，並封鎖 Auth 帳號（無法再取得新 token）
+      case "reset_password":
       case "set_active": {
-        const active = body.active === true;
-        const authId = await rpc<string | null>("svc_set_active", {
-          p_caller_auth: caller.id, p_employee_id: body.employee_id, p_active: active, p_reason: body.reason ?? null,
+        const result = await client.rpc("manage_employee_login", {
+          p_employee:body.employee_id,p_reason:body.reason,
+          p_action:action==="reset_password"?"reset":body.active===true?"activate":"deactivate",
         });
-        if (authId) {
-          const { error } = await admin.auth.admin.updateUserById(authId, { ban_duration: active ? "none" : "876000h" });
-          if (error) throw new HttpError(500, "AUTH_ERROR", `業務權限已${active ? "啟用" : "停用"}，但登入封鎖設定失敗：${error.message}`);
-        }
-        return json(200, { ok: true });
+        if(result.error)throw new HttpError(400,result.error.message.split(":")[0],result.error.message);
+        return json(200,result.data);
       }
 
       default:

@@ -6,6 +6,12 @@ import type { Department, Employee, Role } from "../../lib/types";
 import { ALL_ROLES, ROLE_LABEL } from "../../lib/labels";
 import { Card, ErrorBox, useAction } from "../../components/ui";
 
+const reasons = {
+  reset:["忘記密碼","臨時密碼遺失","資安需求","管理員要求","其他"],
+  deactivate:["離職","職務異動","資安風險","暫停使用","其他"],
+  activate:["復職","職務調整完成","資安問題解除","其他"],
+};
+type LoginAction = keyof typeof reasons;
 interface RoleRow { employee_id: string; role: Role }
 interface MgrRow { manager_id: string; department_id: string }
 
@@ -40,6 +46,12 @@ export default function Employees() {
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [mgr, setMgr] = useState<MgrRow[]>([]);
   const [secret, setSecret] = useState<{ who: string; pw: string } | null>(null);
+  const [loginEdit,setLoginEdit]=useState<{employee:Employee; action:LoginAction} | null>(null);
+  const [reason,setReason]=useState("");
+  const [detail,setDetail]=useState("");
+  const openLoginEdit = (employee:Employee,action:LoginAction)=>{
+    setLoginEdit({employee,action});setReason("");setDetail("");
+  };
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState({ employee_no: "", name: "", department_id: "", roles: [] as Role[], mgr: [] as string[] });
   const [edit, setEdit] = useState({ name: "", department_id: "", roles: [] as Role[], mgr: [] as string[], reason: "" });
@@ -86,6 +98,21 @@ export default function Employees() {
 
   return (
     <>
+      {loginEdit && <Card title={loginEdit.employee.employee_no+" 帳號管理"}>
+        {loginEdit.action==="reset" && <p>請先人工確認員工身分。</p>}
+        {loginEdit.action==="activate" && <p>確認沿用部門及角色：{deptName(loginEdit.employee.department_id)}｜{rolesOf(loginEdit.employee.id).map(r=>ROLE_LABEL[r]).join("、")}</p>}
+        <label>操作原因<select value={reason} onChange={e=>setReason(e.target.value)}><option value="">請選擇</option>
+          {reasons[loginEdit.action].map(r=><option key={r}>{r}</option>)}</select></label>
+        {reason==="其他" && <label>其他原因說明<input value={detail} onChange={e=>setDetail(e.target.value)}/></label>}
+        <button disabled={act.busy || !reason || (reason==="其他" && !detail.trim())} onClick={()=>act.run(async()=>{
+          const {employee,action}=loginEdit;
+          const result=await accountAction<{new_password?:string}>({action:action==="reset"?"reset_password":"set_active",
+            employee_id:employee.id,active:action==="activate",reason:reason==="其他"?"其他："+detail.trim():reason});
+          if(result.new_password)setSecret({who:employee.employee_no,pw:result.new_password});
+          setLoginEdit(null);await load();
+        })}>確認{loginEdit.action==="reset"?"重設密碼":loginEdit.action==="activate"?"啟用":"停用"}</button>
+        <button disabled={act.busy} onClick={()=>setLoginEdit(null)}>取消</button>
+      </Card>}
       {secret && (
         <Card title="初始密碼（只顯示這一次）">
           <p>員工 <strong>{secret.who}</strong> 的密碼：</p>
@@ -139,17 +166,9 @@ export default function Employees() {
               <td>{e.is_active ? "啟用" : <span className="badge danger">停用</span>}{e.must_change_password && e.is_active && <div className="muted">待改密碼</div>}</td>
               <td className="row">
                 <button onClick={() => startEdit(e)}>編輯</button>
-                <button disabled={me?.id===e.id} onClick={() => {
-                  const reason = prompt(`重設 ${e.employee_no} 的密碼，原因：`);
-                  if (reason) act.run(async () => {
-                    const res = await accountAction<{ new_password: string }>({ action: "reset_password", employee_id: e.id, reason });
-                    setSecret({ who: e.employee_no, pw: res.new_password }); await load();
-                  });
-                }}>重設密碼</button>
-                <button className={e.is_active ? "danger" : ""} onClick={() => {
-                  const reason = prompt(`${e.is_active ? "停用" : "啟用"} ${e.employee_no}，原因：`);
-                  if (reason) act.run(async () => { await accountAction({ action: "set_active", employee_id: e.id, active: !e.is_active, reason }); await load(); });
-                }}>{e.is_active ? "停用" : "啟用"}</button>
+                <button disabled={me?.id===e.id} onClick={()=>openLoginEdit(e,"reset")}>重設密碼</button>
+                <button disabled={me?.id===e.id} className={e.is_active?"danger":""}
+                  onClick={()=>openLoginEdit(e,e.is_active?"deactivate":"activate")}>{e.is_active?"停用":"啟用"}</button>
               </td>
             </tr>))}
           </tbody>

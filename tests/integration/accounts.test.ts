@@ -10,8 +10,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const URL = process.env.VITE_SUPABASE_URL ?? "https://qifjiaxskortyennnpsh.supabase.co";
-const KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "sb_publishable_pWMuXx7uLzKnhTlfjoL52Q_SrCOJ5aC";
+const URL = process.env.VITE_SUPABASE_URL ?? "http://127.0.0.1:54329";
+if (!["127.0.0.1","localhost","[::1]"].includes(new globalThis.URL(URL).hostname)) throw new Error("帳號整合測試限定本機服務");
+const KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "local-anonymous-client";
 const ADMIN_NO = process.env.TEST_ADMIN_EMPLOYEE_NO;
 const ADMIN_PW = process.env.TEST_ADMIN_PASSWORD;
 const emailOf = (no: string) => `${no.toLowerCase()}@login.sucoot.com`;
@@ -50,7 +51,7 @@ run("帳號管理（管理者在系統內建立）", () => {
   });
 
   afterAll(async () => {
-    for (const e of created) await fn(admin, { action: "set_active", employee_id: e.id, active: false, reason: "整合測試結束" });
+    for (const e of created) await fn(admin, { action: "set_active", employee_id: e.id, active: false, reason: "其他：整合測試結束" });
   });
 
   it("S1 管理者建立帳號，取得一次性初始密碼", async () => {
@@ -67,7 +68,7 @@ run("帳號管理（管理者在系統內建立）", () => {
     expect(r.error).toBeNull();
     const me = await r.c.rpc("me");
     expect((me.data as { must_change_password: boolean }).must_change_password).toBe(true);
-    const draft = await r.c.rpc("save_draft", { p_request_id: null, p_note: null, p_items: [] });
+    const draft = await r.c.rpc("submit_request", { p_id: "00000000-0000-0000-0000-000000000000" });
     expect(draft.error?.message).toMatch(/^PASSWORD_CHANGE_REQUIRED/);
   });
 
@@ -83,20 +84,23 @@ run("帳號管理（管理者在系統內建立）", () => {
     expect(r.code).toBe("DUPLICATE_EMPLOYEE_NO");
   });
 
-  it("S6 新密碼少於 12 碼被拒；本人改密碼後可正常操作", async () => {
+  it("S6 新密碼少於 8 碼被拒；本人改密碼後可正常操作", async () => {
     const e = created[0];
     const r = await login(e.no, e.pw);
-    expect((await fn(r.c, { action: "change_own_password", current_password: e.pw, new_password: "Short1!" })).code).toBe("WEAK_PASSWORD");
+    expect((await fn(r.c, { action: "change_own_password", current_password: e.pw, new_password: "Short1!", confirm_password:"Short1!" })).code).toBe("WEAK_PASSWORD");
+    const otherDevice = (await login(e.no,e.pw)).c;
     const newPw = `Nw!${crypto.randomUUID()}`;
-    expect((await fn(r.c, { action: "change_own_password", current_password: e.pw, new_password: newPw })).ok).toBe(true);
+    expect((await fn(r.c, { action: "change_own_password", current_password: e.pw, new_password: newPw, confirm_password:newPw })).ok).toBe(true);
+    expect((await otherDevice.rpc("submit_request",{p_id:"00000000-0000-0000-0000-000000000000"})).error?.message).toMatch(/^SESSION_REVOKED/);
     e.pw = newPw;
-    const me = await r.c.rpc("me");
+    expect((await r.c.rpc("me")).error?.message).toMatch(/^SESSION_REVOKED/);
+    const me = await (await login(e.no,newPw)).c.rpc("me");
     expect((me.data as { must_change_password: boolean }).must_change_password).toBe(false);
   });
 
   it("S7 管理者重設密碼：舊密碼失效、新密碼可登入且須再改密碼", async () => {
     const e = created[0];
-    const r = await fn(admin, { action: "reset_password", employee_id: e.id, reason: "整合測試" });
+    const r = await fn(admin, { action: "reset_password", employee_id: e.id, reason: "資安需求" });
     expect(r.ok).toBe(true);
     expect((await login(e.no, e.pw)).error).not.toBeNull();
     const pw = (r.data as { new_password: string }).new_password;
@@ -108,9 +112,9 @@ run("帳號管理（管理者在系統內建立）", () => {
   it("S8 停用帳號：既有 session 呼叫 RPC 被拒，且無法重新登入", async () => {
     const e = created[0];
     const session = (await login(e.no, e.pw)).c;
-    expect((await fn(admin, { action: "set_active", employee_id: e.id, active: false, reason: "整合測試" })).ok).toBe(true);
+    expect((await fn(admin, { action: "set_active", employee_id: e.id, active: false, reason: "資安風險" })).ok).toBe(true);
     const me = await session.rpc("me");
-    expect(me.error?.message).toMatch(/^ACCOUNT_INACTIVE/);
+    expect(me.error?.message).toMatch(/^(ACCOUNT_INACTIVE|SESSION_REVOKED)/);
     expect((await login(e.no, e.pw)).error).not.toBeNull();
   });
 

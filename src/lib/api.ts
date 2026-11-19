@@ -28,6 +28,13 @@ export async function query<T = unknown>(p: PromiseLike<{ data: T | null; error:
 }
 
 export async function accountAction<T = Record<string, unknown>>(body: Record<string, unknown>): Promise<T> {
+  if (body.action === "change_own_password") return rpc<T>("change_employee_password", {
+    p_current:body.current_password,p_new:body.new_password,p_confirmation:body.confirm_password,
+  });
+  if (body.action === "reset_password" || body.action === "set_active") return rpc<T>("manage_employee_login", {
+    p_employee:body.employee_id,p_reason:body.reason,
+    p_action:body.action==="reset_password"?"reset":body.active?"activate":"deactivate",
+  });
   const { data, error } = await supabase.functions.invoke("admin-accounts", { body });
   if (error) {
     // FunctionsHttpError：讀取回應內容
