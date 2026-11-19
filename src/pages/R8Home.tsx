@@ -1,3 +1,4 @@
+import { SecurityNotices } from "../components/SecurityNotices";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../lib/auth";
@@ -44,5 +45,6 @@ export default function R8Home() {
   const row=(r:RequestRow)=><div className="r8-case-row" key={r.id}><div><b>{r.request_no}</b> <span className="r8-pill">{STATUS_LABEL[r.status]}</span><div className="r8-muted">{r.department_name}｜{r.item_count} 筆｜{r.is_urgent?"急件":"一般件"}</div></div><Link className="r8-btn" to={'/r/'+r.id}>查看案件</Link></div>;
   return <><ErrorBox error={error}/><section className="r8-card"><h2>我的工作</h2><div className="r8-metrics">{[{label:"我的案件",rows:rows.filter(r=>r.applicant_id===me.id)},...groups].map(g=><div className="r8-meter" key={g.label}><strong>{g.rows.length}</strong>{g.label}</div>)}</div></section>
     <section className="r8-card"><h2>目前待辦（{tasks.length}）</h2>{tasks.length?tasks.map(row):"目前沒有待辦。"}</section>
+    <SecurityNotices key={me.id}/>
     <section className="r8-card"><h2>案件查詢與權限可視化</h2>{rows.map(row)}</section></>;
 }
