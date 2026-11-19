@@ -4,6 +4,7 @@ import { useAuth } from "../../lib/auth";
 import { ErrorBox, useAction } from "../../components/ui";
 import { useRequestDetail } from "./useRequestDetail";
 import type { SectionProps } from "./types";
+import MockLine from "../../components/MockLine";
 import Summary from "./sections/Summary";
 import ApplicantActions from "./sections/ApplicantActions";
 import ReviewActions from "./sections/ReviewActions";
@@ -50,6 +51,7 @@ export default function RequestDetail() {
         <AbnormalSection {...props} />
         <AdminActions {...props} />
       </section>
+      <MockLine key={d.r.id+me.id} id={d.r.id} version={d.r.version}/>
       <details className="r8-card"><summary>審核與案件歷程</summary><HistorySection {...props} /></details>
     </>
   );

@@ -49,7 +49,7 @@ async function persist(submit) {
       p_urgent:urgent(), p_reason:$('urgencyReason').value, p_note:$('note').value,
       p_products:items, p_submit:submit
     });
-    parent.location.hash='/r/'+id;
+    if(!submit) parent.location.hash='/r/'+id;
   } catch(error) { $('result').textContent=error.message; submitted=false; }
 }
 function check(submit) {
