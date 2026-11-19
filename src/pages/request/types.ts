@@ -5,13 +5,12 @@ export interface Review { id: string; round: number; level: number; action: stri
 export interface History { id: number; from_status: string | null; to_status: string; actor_id: string | null; reason: string | null; created_at: string }
 export interface Claim { id: string; staff_id: string; claimed_at: string; released_at: string | null; release_reason: string | null; reassigned_to: string | null }
 export interface Abnormal { id: string; item_id: string; reason: string; status: "OPEN" | "REISSUED" | "CONFIRMED"; reported_at: string; reissued_at: string | null; confirmed_at: string | null }
-export interface Transfer { id: string; from_owner_id: string; to_owner_id: string; reason: string; created_at: string }
 export interface Revision { round: number; resubmit_note: string | null; submitted_at: string }
 
 export interface Detail {
   r: RequestRow; items: Item[]; reviews: Review[]; history: History[]; claims: Claim[];
   exception: {reason:string; withdrawal_reason:string|null} | null;
-  abnormal: Abnormal[]; transfers: Transfer[]; revisions: Revision[]; people: Record<string, DirectoryEntry>;
+  abnormal: Abnormal[]; revisions: Revision[]; people: Record<string, DirectoryEntry>;
 }
 
 /** 每個區塊共用的內容：案件資料、目前使用者、執行動作的方法 */

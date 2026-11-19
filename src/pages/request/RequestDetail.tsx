@@ -52,7 +52,7 @@ export default function RequestDetail() {
         <AdminActions {...props} />
       </section>
       <MockLine key={d.r.id+me.id} id={d.r.id} version={d.r.version}/>
-      <details className="r8-card"><summary>審核與案件歷程</summary><HistorySection {...props} /></details>
+      <details className="r8-card"><summary>審核與案件歷程</summary><HistorySection key={d.r.id} {...props} /></details>
     </>
   );
 }

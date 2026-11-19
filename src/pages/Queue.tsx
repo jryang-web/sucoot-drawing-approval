@@ -20,7 +20,8 @@ export default function Queue({ all, kind }: { all?: boolean; kind?: "l1" | "l2"
 
   useEffect(() => {
     const statuses = all || !kind ? null : KINDS[kind].statuses;
-    let q = supabase.from("v_requests").select("*").order("updated_at", { ascending: false }).limit(200);
+    let q = supabase.from(kind==="l2"?"v_work_requests":"v_requests").select("*").order("updated_at", { ascending: false }).limit(200);
+    if (kind==="l2") q=q.eq("approved_l1_by_me",false);
     if (statuses) q = q.in("status", statuses);
     else if (status === "OVERDUE") q = q.eq("is_receipt_overdue", true);
     else if (status) q = q.eq("status", status);
