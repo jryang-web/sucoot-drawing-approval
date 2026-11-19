@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "../../lib/auth";
 import { supabase } from "../../lib/supabase";
 import { accountAction, query, rpc } from "../../lib/api";
 import type { Department, Employee, Role } from "../../lib/types";
@@ -33,6 +34,7 @@ function DeptPicker({ depts, value, onChange }: { depts: Department[]; value: st
 }
 
 export default function Employees() {
+  const {me}=useAuth();
   const [emps, setEmps] = useState<Employee[]>([]);
   const [depts, setDepts] = useState<Department[]>([]);
   const [roles, setRoles] = useState<RoleRow[]>([]);
@@ -137,7 +139,7 @@ export default function Employees() {
               <td>{e.is_active ? "啟用" : <span className="badge danger">停用</span>}{e.must_change_password && e.is_active && <div className="muted">待改密碼</div>}</td>
               <td className="row">
                 <button onClick={() => startEdit(e)}>編輯</button>
-                <button onClick={() => {
+                <button disabled={me?.id===e.id} onClick={() => {
                   const reason = prompt(`重設 ${e.employee_no} 的密碼，原因：`);
                   if (reason) act.run(async () => {
                     const res = await accountAction<{ new_password: string }>({ action: "reset_password", employee_id: e.id, reason });

@@ -1,3 +1,4 @@
+import ExceptionInbox from "./ExceptionInbox";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
@@ -21,5 +22,5 @@ export default function R8Admin() {
   return <div className="r8-admin"><nav className="side"><b>工作總覽</b>{menu.map(([path,title])=><Link key={path} to={'/admin/'+path}>{title}</Link>)}</nav>
     <section><h1>系統管理工作首頁</h1><ErrorBox error={error}/><div className="r8-metrics">{["啟用員工","整案異常待辦","流程警示","簽收逾期案件"].map((title,i)=><div className="r8-meter" key={title}><strong>{counts[i]??"—"}</strong>{title}</div>)}</div>
     <div className="cols"><section className="r8-card"><h2>優先處理</h2><Link to="/admin/alerts">流程卡關警示</Link></section>
-    <section className="r8-card"><h2>授權與角色</h2>{me?.roles.join("、")}</section></div><section className="r8-card"><h2>管理功能</h2><div className="r8-metrics">{menu.map(([path,title])=><Link className="r8-btn" key={path} to={'/admin/'+path}>{title}</Link>)}</div></section></section></div>;
+    <section className="r8-card"><h2>授權與角色</h2>{me?.roles.join("、")}</section></div><section className="r8-card"><h2>管理功能</h2><div className="r8-metrics">{menu.map(([path,title])=><Link className="r8-btn" key={path} to={'/admin/'+path}>{title}</Link>)}</div></section><ExceptionInbox/></section></div>;
 }

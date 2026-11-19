@@ -141,6 +141,7 @@ Deno.serve(async (req) => {
       // 管理者重設密碼：產生新密碼，並要求下次登入修改
       case "reset_password": {
         const authId = await rpc<string>("svc_get_employee_auth", { p_caller_auth: caller.id, p_employee_id: body.employee_id });
+        if (authId === caller.id) throw new HttpError(403, "FORBIDDEN", "不可透過管理後台重設自己的密碼");
         const password = generatePassword();
         const { error } = await admin.auth.admin.updateUserById(authId, { password });
         if (error) throw new HttpError(400, "AUTH_ERROR", error.message);

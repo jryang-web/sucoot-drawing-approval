@@ -13,6 +13,8 @@ export default function AdminActions({ d, has, busy, run }: SectionProps) {
   const [reassignTo, setReassignTo] = useState("");
   const [category, setCategory] = useState("");
   const [staffIds, setStaffIds] = useState<string[]>([]);
+  const [supplement,setSupplement]=useState("");
+  const [kind,setKind]=useState("補充資訊");
   const claim = activeClaim(d);
   const showReassign = r.status === "PENDING_ISSUE" && !!claim;
 
@@ -23,7 +25,9 @@ export default function AdminActions({ d, has, busy, run }: SectionProps) {
       .then((rows) => setStaffIds(rows.map((x) => x.employee_id))).catch(() => setStaffIds([]));
   }, [isAdmin, showReassign]);
 
-  if (!isAdmin || (!showReassign && CLOSED.includes(r.status))) return null;
+  if (!isAdmin) return null;
+  if (CLOSED.includes(r.status)) return d.exception
+    ? <section><h3>整案異常歷史</h3><p>{d.exception.reason}</p>{d.exception.withdrawal_reason && <p>撤回原因：{d.exception.withdrawal_reason}</p>}</section> : null;
   const active = Object.values(people).filter((p) => p.is_active);
   const done = () => { setReason(""); setReassignTo(""); setCategory(""); };
 
@@ -31,6 +35,15 @@ export default function AdminActions({ d, has, busy, run }: SectionProps) {
     <div style={{ borderTop: "1px solid var(--line)", marginTop: 16, paddingTop: 8 }}>
       <h2>管理員例外處理</h2>
       <p className="muted">所有操作都會留下稽核紀錄；管理員不可代為審核、發行或簽收。</p>
+      {d.exception && <section><h3>整案異常紀錄</h3><p>{d.exception.reason}</p>
+        {d.exception.withdrawal_reason && <p>撤回原因：{d.exception.withdrawal_reason}</p>}
+        {r.status==="ISSUE_ABNORMAL" && <><label>補充紀錄分類<select value={kind} onChange={e=>setKind(e.target.value)}>
+        {["補充資訊","資料更正說明","處理結果說明","其他"].map(k=><option key={k}>{k}</option>)}</select></label>
+        <textarea aria-label="補充說明" value={supplement} maxLength={500} onChange={e=>setSupplement(e.target.value)}/>
+        <button disabled={busy || !supplement.trim()} onClick={async()=>{
+          if(!confirm("補充紀錄送出後無法修改或刪除，確定？"))return;
+          if(await run(()=>rpc("admin_exception_note",{p_id:r.id,p_kind:kind,p_note:supplement}),"已保存補充紀錄至稽核紀錄"))setSupplement("");
+        }}>新增補充紀錄</button></>}</section>}
       <label>原因（必填）</label><input value={reason} onChange={(e) => setReason(e.target.value)} />
 
       {showReassign && <>

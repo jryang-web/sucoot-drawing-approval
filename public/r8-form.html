@@ -28,7 +28,7 @@ input:not([type=checkbox]):not([type=radio]),select,textarea{max-width:100%}
 <div class="grid"><div>
 <section class="panel"><div class="panel-h"><h2><span class="step">01</span>申請單基本資料</h2><span class="sub">整案統一設定</span></div><div class="panel-b"><div class="two"><div class="field"><label>申請人</label><div class="readonly"><span id="applicant"></span></div></div><div class="field"><label>申請日期</label><div class="readonly" id="dateText">尚未送出</div><div class="hint">正式系統於首次送出時自動記錄台灣時間，退回重送不變。</div></div></div><div class="two"><div class="field"><label for="purpose">申請用途 <span class="required">*</span></label><select id="purpose"><option value="">請選擇用途</option><option>施工使用</option><option>估價／報價</option><option>設計檢討</option><option>製造加工</option><option>品質檢驗</option><option>文件留存</option><option>其他</option></select></div><div class="field"><span class="lab">優先順序 <span class="required">*</span></span><div class="seg"><label><input checked="" name="urgency" type="radio" value="normal"/>一般件</label><label><input name="urgency" type="radio" value="urgent"/>急件</label></div></div></div><div class="field" hidden="" id="otherWrap"><label for="other">其他用途說明 <span class="required">*</span></label><textarea id="other" placeholder="請填寫申請用途"></textarea></div><div class="field" hidden="" id="urgentWrap"><label for="urgencyReason">急件原因 <span class="required">*</span></label><textarea id="urgencyReason" placeholder="請說明整案需要急件處理的原因"></textarea></div><div class="field" style="margin-bottom:0"><label for="note">整案備註（選填）</label><textarea id="note" placeholder="可補充整張申請單的說明"></textarea></div></div></section>
 <section class="panel"><div class="panel-h"><h2><span class="step">02</span>產品明細</h2><span class="sub" id="count">1 / 5 筆</span></div><div class="panel-b"><div class="note" style="margin-bottom:15px">每張申請單至少 1 筆、最多 5 筆產品。產品編碼限 1–30 個半形英文字母、數字及 <code>_ . / -</code>；同一案件不可重複，英文字母大小寫視為不同。</div><div id="products"></div><button class="add" id="add" type="button">＋ 新增產品（最多 5 筆）</button></div></section>
-<section class="panel"><div class="panel-h"><h2><span class="step">03</span>確認送出</h2></div><div class="panel-b"><p class="sub">送出前先檢查整案資料。草稿不產生申請日期；確認後寫入本機測試資料庫。</p><div aria-live="polite" id="result"></div><div class="actions"><button class="btn" id="draft" type="button">儲存模擬草稿</button><button class="btn primary" id="check" type="button">檢查並確認送出</button><button class="btn soft" id="clear" type="button">清空重填</button></div></div></section>
+<section class="panel"><div class="panel-h"><h2><span class="step">03</span>確認送出</h2></div><div class="panel-b"><p class="sub">送出前先檢查整案資料。草稿不產生申請日期；確認後寫入本機測試資料庫。</p><div aria-live="polite" id="result"></div><div class="actions"><button class="btn" id="draft" type="button">儲存草稿</button><button class="btn primary" id="check" type="button">檢查並確認送出</button><button class="btn soft" id="clear" type="button">清空重填</button></div></div></section>
 </div><div class="side"><div class="panel sticky"><div class="panel-h"><h2>申請資料摘要</h2><span class="chip">未送出</span></div><div class="panel-b"><div class="summary-row"><span>申請日期</span><strong>尚未送出</strong></div><div class="summary-row"><span>用途</span><strong id="sPurpose">尚未選擇</strong></div><div class="summary-row"><span>優先順序</span><strong id="sUrgency">一般件</strong></div><div class="summary-row"><span>產品筆數</span><strong id="sCount">1 / 5</strong></div><div class="divider"></div><strong class="side-title">產品編碼</strong><div class="sub" id="sItems">尚未填寫</div><div class="divider"></div><div class="note">符合 V5.8：全案用途、全案急件、全案申請日期；不管理版次、逐筆需求日期或逐筆急件。</div></div></div></div></div>
 <footer class="footer"><span>SUCOOT 圖面申請與審核系統</span><span>V5.8 本機測試版</span><button id="versionBtn" type="button">版本號與更新說明</button><span></span></footer></main></div>
 <div aria-labelledby="modalTitle" aria-modal="true" class="dialog-wrap" id="modal" role="dialog"><div class="dialog"><h2 id="modalTitle">確認申請</h2><div id="modalBody"></div><div class="actions"><button class="btn" id="cancelModal" type="button">取消</button><button class="btn primary" id="acceptModal" type="button">確認</button></div></div></div>
@@ -40,6 +40,23 @@ $('products').addEventListener('input',e=>{let el=e.target;if(!el.dataset.field)
 function validate(){let errors=[];if(!$('purpose').value)errors.push('請選擇申請用途。');if($('purpose').value==='其他'&&!$('other').value.trim())errors.push('選擇「其他」時，請填寫用途說明。');if(urgent()&&!$('urgencyReason').value.trim())errors.push('急件必須填寫整案急件原因。');if(items.length<1||items.length>5)errors.push('每案必須有 1 至 5 筆產品。');let seen=new Set();items.forEach((x,i)=>{const code=x.code.trim();if(!code)errors.push(`產品 ${i+1}：請輸入產品編碼。`);else if(code.length>30||!/^[A-Za-z0-9_.\/-]+$/.test(code))errors.push(`產品 ${i+1}：產品編碼只允許 1–30 個英數與 _ . / -。`);if(code&&seen.has(code))errors.push(`產品 ${i+1}：產品編碼與同案其他產品重複。`);seen.add(code);if(!x.name.trim())errors.push(`產品 ${i+1}：請填寫品名/規格。`)});return errors;}
 function show(title,body,action,yes='確認'){$('modalTitle').textContent=title;$('modalBody').innerHTML=body;$('acceptModal').textContent=yes;$('acceptModal').onclick=()=>{hide();action?.()};$('modal').classList.add('show');$('cancelModal').focus()};function hide(){$('modal').classList.remove('show')} $('cancelModal').onclick=hide;$('modal').addEventListener('click',e=>{if(e.target===$('modal'))hide()});document.addEventListener('keydown',e=>{if(e.key==='Escape')hide()});
 
+window.loadDraft = function(data) {
+  const list=data.items;
+  const first=list[0];
+  items=list.map(i=>({code:i.drawing_no,name:i.drawing_name,remark:i.remark || ''}));
+  const purpose=first?.purpose || '';
+  const known=Array.from($('purpose').options).some(o=>o.value===purpose);
+  $('purpose').value=known?purpose:'其他';
+  $('other').value=known?'':purpose.replace(/^其他：/,'');
+  const urgentItem=list.find(i=>i.is_urgent);
+  document.querySelector(urgentItem?'[name=urgency][value=urgent]':'[name=urgency][value=normal]').checked=true;
+  $('urgencyReason').value=urgentItem?.urgency_reason || '';
+  $('note').value=data.note || '';
+  $('draft').textContent='儲存修改';
+  $('check').hidden=data.status==='RETURNED';
+  $('clear').hidden=true;
+  render();
+}
 async function persist(submit) {
   if (submitted) return;
   submitted=true;

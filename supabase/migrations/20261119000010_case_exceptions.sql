@@ -9,7 +9,7 @@ alter table public.case_exceptions enable row level security;
 revoke all on public.case_exceptions from public, anon, authenticated;
 grant select on public.case_exceptions to authenticated;
 create policy case_exception_read on public.case_exceptions for select to authenticated
-  using (exists(select 1 from public.drawing_requests r where r.id=request_id));
+  using (app.has_role('SYS_ADMIN'));
 
 create function public.case_exception(p_id uuid,p_reason text,p_withdraw boolean,p_expected_version int)
 returns void language plpgsql security definer set search_path='' as $$
@@ -23,13 +23,13 @@ begin
     update public.case_exceptions set withdrawn_at=now(),withdrawal_reason=btrim(p_reason)
       where request_id=p_id and withdrawn_at is null;
     if not found then perform app.err('INVALID_STATE','無整案異常可撤回'); end if;
-    perform app.set_status(p_id,'PENDING_RECEIPT',actor,'撤回整案異常：'||btrim(p_reason));
+    perform app.set_status(p_id,'PENDING_RECEIPT',actor,'撤回整案異常');
   else
     perform app.expect_status(r,'PENDING_RECEIPT');
     insert into public.case_exceptions(request_id,reason) values(p_id,btrim(p_reason))
       on conflict do nothing;
     if not found then perform app.err('INVALID_STATE','每案限提出一次整案異常'); end if;
-    perform app.set_status(p_id,'ISSUE_ABNORMAL',actor,'整案異常：'||btrim(p_reason));
+    perform app.set_status(p_id,'ISSUE_ABNORMAL',actor,'提出整案異常');
   end if;
 end $$;
 

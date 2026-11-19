@@ -1,27 +1,55 @@
 import MockLine from "../components/MockLine";
-import { Link } from "react-router-dom";
+import { ErrorBox } from "../components/ui";
+import { Link,useParams } from "react-router-dom";
 import { useEffect,useState } from "react";
-import { rpc } from "../lib/api";
+import { query,rpc } from "../lib/api";
+import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
+import type {Item,RequestRow} from "../lib/types";
 
+type Draft=Pick<RequestRow,"id"|"note"|"version"|"status"> & {items:Item[]};
 declare global {
-  interface Window { saveR8?: (args: Record<string, unknown>) => Promise<string> }
+  interface Window {
+    saveR8?: (args: Record<string, unknown>) => Promise<string>;
+    loadDraft?: (draft:Draft)=>void;
+  }
 }
 
 export default function R8Form() {
   const {me} = useAuth();
+  const {id}=useParams();
+  const [draft,setDraft]=useState<Draft|null>(null);
   const [sent,setSent]=useState("");
+  const [error,setError]=useState<unknown>();
+  useEffect(()=>{
+    let active=true;
+    setSent("");setDraft(null);setError(null);
+    if(id)Promise.all([
+      query<RequestRow>(supabase.from("v_requests").select("*").eq("id",id).single()),
+      query<Item[]>(supabase.from("drawing_request_items").select("*").eq("request_id",id).order("line_no"))
+    ]).then(([r,items])=>{
+      if(!active)return;
+      if(r.applicant_id!==me?.id || !["DRAFT","RETURNED"].includes(r.status))throw new Error("目前無權編輯此案");
+      setDraft({...r,items});
+    }).catch(e=>{if(active)setError(e)});
+    return ()=>{active=false};
+  },[id,me?.id]);
   useEffect(() => {
     window.saveR8 = async args => {
-      const id=await rpc<string>("save_r8_application",args);
-      if(args.p_submit)setSent(id);
-      return id;
+      if(id && draft?.id!==id)throw new Error("案件尚未載入");
+      const saved=await rpc<string>("write_r8_application",{...args,p_id:id??null,p_version:draft?.version??null});
+      if(args.p_submit)setSent(saved);
+      return saved;
     };
     return () => { delete window.saveR8; };
-  }, []);
+  }, [id,draft]);
+  if(error)return <ErrorBox error={error}/>;
+  if(id && draft?.id!==id)return <p>載入中…</p>;
   if(sent)return <><div className="r8-card"><h2>首次申請已送出</h2><Link to={"/r/"+sent}>查看案件</Link></div><MockLine id={sent}/></>;
-  return <iframe className="r8-form" src="./r8-form.html" title="新增圖面申請" onLoad={event => {
-    const label = event.currentTarget.contentDocument?.getElementById("applicant");
-    if (label && me) label.textContent = me.employee_no + "｜" + me.name;
-  }} />;
+  return <iframe key={id??"new"} className="r8-form" src="./r8-form.html" title="圖面申請" onLoad={event => {
+    const frame=event.currentTarget;
+    const label=frame.contentDocument?.getElementById("applicant");
+    if(label && me)label.textContent=me.employee_no+"｜"+me.name;
+    if(id && draft)frame.contentWindow?.loadDraft?.(draft);
+  }}/>;
 }

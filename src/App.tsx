@@ -8,7 +8,7 @@ import R8Admin from "./pages/admin/R8Admin";
 import R8Home from "./pages/R8Home";
 import R8Form from "./pages/R8Form";
 import "./r8.css";
-import RequestForm from "./pages/RequestForm";
+
 import RequestDetail from "./pages/request/RequestDetail";
 import Queue from "./pages/Queue";
 import Departments from "./pages/admin/Departments";
@@ -51,7 +51,7 @@ export default function App() {
           <Route path="/my" element={<R8Home />} />
           <Route path="/new" element={<R8Form />} />
           <Route path="/r/:id" element={<RequestDetail />} />
-          <Route path="/r/:id/edit" element={<RequestForm />} />
+          <Route path="/r/:id/edit" element={<R8Form />} />
           <Route path="/queue/l1" element={guard("DEPT_MANAGER", <Queue key="l1" kind="l1" />)} />
           <Route path="/queue/l2" element={guard("DRAWING_MANAGER", <Queue key="l2" kind="l2" />)} />
           <Route path="/queue/issue" element={guard("DRAWING_STAFF", <Queue key="issue" kind="issue" />)} />

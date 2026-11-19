@@ -8,7 +8,8 @@ export default function ReceiptActions({ d, me, busy, run }: SectionProps) {
   const [reason,setReason] = useState("");
   if ((r.owner_id !== me.id && r.applicant_id !== me.id) || (r.status !== "PENDING_RECEIPT" && r.status !== "ISSUE_ABNORMAL")) return null;
   const withdraw = r.status === "ISSUE_ABNORMAL";
-  const canReport = r.applicant_id === me.id && (withdraw ? exception && !exception.withdrawal_reason : !exception);
+  const reported = d.history.some(h=>h.reason==="提出整案異常");
+  const canReport = r.applicant_id === me.id && (withdraw ? reported : !reported);
   return (
     <div style={{ marginBottom: 12 }}>
       <h2>簽收</h2>
