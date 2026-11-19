@@ -1,3 +1,4 @@
+import OperationResults from "./components/OperationResults";
 import type { ReactElement } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./lib/auth";
@@ -44,7 +45,7 @@ export default function App() {
         {has("SYS_ADMIN") && tab("/admin", "系統管理")}
         {tab("/password", "修改密碼")}
       </div></nav>
-      <main className="content"><div className="r8-identity">{me.employee_no}｜{me.name}｜{me.department_name}</div><div className="frame-shell"><div className="r8-screen">
+      <main className="content"><OperationResults key={session.user.id} user={session.user.id}/><div className="r8-identity">{me.employee_no}｜{me.name}｜{me.department_name}</div><div className="frame-shell"><div className="r8-screen">
         <Routes>
           <Route path="/detail" element={<div className="r8-card">請從工作首頁選擇一筆案件。</div>}/>
           <Route path="/admin" element={guard("SYS_ADMIN", <R8Admin />)}/>

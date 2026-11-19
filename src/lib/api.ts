@@ -1,3 +1,4 @@
+import {businessOperation, operationLabels} from "./operations";
 import { supabase } from "./supabase";
 
 export class ApiError extends Error {
@@ -16,6 +17,12 @@ function toApiError(e: { message?: string; code?: string } | null | undefined): 
 }
 
 export async function rpc<T = unknown>(fn: string, args: Record<string, unknown> = {}): Promise<T> {
+  if(fn==="write_r8_application" && args.p_submit===false){
+    const draft={...args};
+    delete draft.p_submit;
+    return rpc<T>("save_r8_draft",draft);
+  }
+  if(Object.prototype.hasOwnProperty.call(operationLabels,fn))return await businessOperation(fn,args) as T;
   const { data, error } = await supabase.rpc(fn, args);
   if (error) throw toApiError(error);
   return data as T;

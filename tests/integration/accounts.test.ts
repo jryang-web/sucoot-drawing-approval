@@ -68,7 +68,7 @@ run("帳號管理（管理者在系統內建立）", () => {
     expect(r.error).toBeNull();
     const me = await r.c.rpc("me");
     expect((me.data as { must_change_password: boolean }).must_change_password).toBe(true);
-    const draft = await r.c.rpc("submit_request", { p_id: "00000000-0000-0000-0000-000000000000" });
+    const draft = await r.c.rpc("prepare_operation", {p_key:crypto.randomUUID(),p_action:"submit_request",p_args:{p_id:"00000000-0000-0000-0000-000000000000",p_expected_version:1}});
     expect(draft.error?.message).toMatch(/^PASSWORD_CHANGE_REQUIRED/);
   });
 
@@ -91,7 +91,7 @@ run("帳號管理（管理者在系統內建立）", () => {
     const otherDevice = (await login(e.no,e.pw)).c;
     const newPw = `Nw!${crypto.randomUUID()}`;
     expect((await fn(r.c, { action: "change_own_password", current_password: e.pw, new_password: newPw, confirm_password:newPw })).ok).toBe(true);
-    expect((await otherDevice.rpc("submit_request",{p_id:"00000000-0000-0000-0000-000000000000"})).error?.message).toMatch(/^SESSION_REVOKED/);
+    expect((await otherDevice.rpc("prepare_operation",{p_key:crypto.randomUUID(),p_action:"submit_request",p_args:{p_id:"00000000-0000-0000-0000-000000000000",p_expected_version:1}})).error?.message).toMatch(/^SESSION_REVOKED/);
     e.pw = newPw;
     expect((await r.c.rpc("me")).error?.message).toMatch(/^SESSION_REVOKED/);
     const me = await (await login(e.no,newPw)).c.rpc("me");
