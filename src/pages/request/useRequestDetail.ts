@@ -12,7 +12,7 @@ export function useRequestDetail(id: string) {
   const reload = useCallback(async () => {
     try {
       const r = await query<RequestRow>(supabase.from("v_requests").select("*").eq("id", id).single());
-      const [items, reviews, history, claims, abnormal, transfers, revisions, people] = await Promise.all([
+      const [items, reviews, history, claims, abnormal, transfers, revisions, people, exception] = await Promise.all([
         query<Item[]>(supabase.from("drawing_request_items").select("*").eq("request_id", id).order("line_no")),
         query<Review[]>(supabase.from("review_records").select("*").eq("request_id", id).order("created_at")),
         query<History[]>(supabase.from("request_status_history").select("*").eq("request_id", id).order("id")),
@@ -21,8 +21,9 @@ export function useRequestDetail(id: string) {
         query<Transfer[]>(supabase.from("ownership_transfers").select("*").eq("request_id", id).order("created_at")),
         query<Revision[]>(supabase.from("request_revisions").select("round,resubmit_note,submitted_at").eq("request_id", id).order("round")),
         query<DirectoryEntry[]>(supabase.from("v_employee_directory").select("*")),
+        query<Detail["exception"]>(supabase.from("case_exceptions").select("reason,withdrawal_reason").eq("request_id",id).maybeSingle()),
       ]);
-      setData({ r, items, reviews, history, claims, abnormal, transfers, revisions,
+      setData({ r, items, reviews, history, claims, abnormal, transfers, revisions, exception,
         people: Object.fromEntries(people.map((p) => [p.id, p])) });
       setError(null);
     } catch (e) {

@@ -11,7 +11,7 @@ export default function AdminActions({ d, has, busy, run }: SectionProps) {
   const isAdmin = has("SYS_ADMIN");
   const [reason, setReason] = useState("");
   const [reassignTo, setReassignTo] = useState("");
-  const [newOwner, setNewOwner] = useState("");
+  const [category, setCategory] = useState("");
   const [staffIds, setStaffIds] = useState<string[]>([]);
   const claim = activeClaim(d);
   const showReassign = r.status === "PENDING_ISSUE" && !!claim;
@@ -25,7 +25,7 @@ export default function AdminActions({ d, has, busy, run }: SectionProps) {
 
   if (!isAdmin || (!showReassign && CLOSED.includes(r.status))) return null;
   const active = Object.values(people).filter((p) => p.is_active);
-  const done = () => { setReason(""); setReassignTo(""); setNewOwner(""); };
+  const done = () => { setReason(""); setReassignTo(""); setCategory(""); };
 
   return (
     <div style={{ borderTop: "1px solid var(--line)", marginTop: 16, paddingTop: 8 }}>
@@ -45,15 +45,14 @@ export default function AdminActions({ d, has, busy, run }: SectionProps) {
         }}>解除認領／重新指派</button>
       </>}
 
-      {!CLOSED.includes(r.status) && <>
-        <label>移交簽收負責人</label>
-        <select value={newOwner} onChange={(e) => setNewOwner(e.target.value)}>
-          <option value="">請選擇新負責人</option>
-          {active.filter((p) => p.id !== r.owner_id).map((p) => <option key={p.id} value={p.id}>{p.name}（{p.employee_no}）</option>)}
-        </select>
-        <button disabled={busy || !newOwner} onClick={async () => {
-          if (await run(() => rpc("admin_transfer_owner", { p_id: r.id, p_to: newOwner, p_reason: reason }), "已移交")) done();
-        }}>移交</button>
+      {r.status !== "DRAFT" && <>
+        <label>強制結案原因分類<select value={category} onChange={e=>setCategory(e.target.value)}>
+          <option value="">請選擇</option>{["人員離職","簽收異常","案件無法繼續處理","其他"].map(c=><option key={c}>{c}</option>)}
+        </select></label>
+        <button disabled={busy || !category || !reason.trim()} onClick={async()=>{
+          if (!confirm("確定終止本案所有未完成待辦？") || !confirm("強制結案後永久唯讀，確定？")) return;
+          if (await run(()=>rpc("admin_force_close",{p_id:r.id,p_category:category,p_reason:reason,p_expected_version:r.version}),"已強制結案")) done();
+        }}>強制結案</button>
       </>}
     </div>
   );

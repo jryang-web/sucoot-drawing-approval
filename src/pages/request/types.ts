@@ -10,6 +10,7 @@ export interface Revision { round: number; resubmit_note: string | null; submitt
 
 export interface Detail {
   r: RequestRow; items: Item[]; reviews: Review[]; history: History[]; claims: Claim[];
+  exception: {reason:string; withdrawal_reason:string|null} | null;
   abnormal: Abnormal[]; transfers: Transfer[]; revisions: Revision[]; people: Record<string, DirectoryEntry>;
 }
 
