@@ -8,6 +8,7 @@ for role in db kong auth rest; do
   container="supabase_${role}_${network}"
   [[ "$("${docker_local[@]}" inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}' "$container")" == "$network" ]]
 done
+python3 scripts/start-local-edge.py
 python3 scripts/local-api.py &
 bridge=$!
 trap 'kill "$bridge" 2>/dev/null || true' EXIT

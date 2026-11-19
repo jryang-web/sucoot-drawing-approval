@@ -37,7 +37,7 @@ export default function OperationResults({user}:{user:string}){
   if(!rows.length && !error)return null;
   return <section className="r8-card" role="dialog" aria-label="操作結果"><h2>操作結果</h2>
     {error && <p role="alert">{error}</p>}
-    {rows.map(row=><p key={row.id}><b>{operationLabels[row.action]}</b> {row.result?.number??row.case_id??"新申請"}｜
+    {rows.map(row=><p key={row.id}><b>{operationLabels[row.action]}</b> {row.result?.number??row.case_id??"尚無確認案號"}｜
       {row.result ? row.result.ok?"已成功":row.result.error : "尚未確認，請先查詢結果"}<br/><small>操作識別碼：{row.id}</small></p>)}
     <button onClick={()=>setRefresh(n=>n+1)}>重新查詢</button>
     <button onClick={()=>setRows([])}>關閉</button>

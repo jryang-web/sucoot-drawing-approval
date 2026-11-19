@@ -9,7 +9,7 @@ export const operationLabels: Record<string,string> = {
 
 interface Outcome {ok:boolean;id?:string;number?:string;error?:string}
 export interface OperationResult {id:string;action:string;case_id:string|null;result:Outcome|null}
-interface Marker {id:string;action:string;case_id:string|null;shown?:boolean}
+interface Marker {id:string;action:string;case_id:string|null;sessionId?:string;shown?:boolean}
 const prefix=(user:string)=>"sucoot.operation."+user+".";
 export const resultEvent="sucoot-operation-results";
 
@@ -22,12 +22,28 @@ async function call<T>(name:string,args:Record<string,unknown>):Promise<T>{
   if(error)throw new Error(error.message);
   return data as T;
 }
+function sessionId(token:string):string {
+  const payload=token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");
+  return JSON.parse(atob(payload)).session_id;
+}
 export async function resultsFor(user:string):Promise<OperationResult[]> {
-  const local=markers(user).map(([,m])=>m);
-  const rows=await call<OperationResult[]>("operation_results",{p_keys:local.map(m=>m.id)});
+  const {data:{session}}=await supabase.auth.getSession();
+  if(!session || session.user.id!==user)throw new Error("請重新登入");
+  const current=sessionId(session.access_token);
+  const entries=markers(user);
+  for(const [,m] of entries){
+    if(m.sessionId!==current)await call("retire_missing_operation",{p_key:m.id});
+  }
+  const rows=await call<OperationResult[]>("operation_results",{p_keys:entries.map(([,m])=>m.id)});
   const seen=new Set(rows.map(r=>r.id));
-  const shown=new Set(local.filter(m=>m.shown).map(m=>m.id));
-  return [...rows.filter(r=>!shown.has(r.id)),...local.filter(m=>!seen.has(m.id)).map(m=>({...m,result:null}))];
+  const shown=new Set(entries.filter(([,m])=>m.shown).map(([,m])=>m.id));
+  const pending:OperationResult[]=[];
+  for(const [key,m] of entries){
+    if(seen.has(m.id))continue;
+    if(m.sessionId===current)pending.push({id:m.id,action:m.action,case_id:null,result:null});
+    else if(JSON.parse(localStorage.getItem(key)??"null")?.id===m.id)localStorage.removeItem(key);
+  }
+  return [...rows.filter(r=>!shown.has(r.id)),...pending];
 }
 export async function acknowledge(user:string,ids:string[]) {
   await call("ack_operation_results",{p_keys:ids});
@@ -47,17 +63,26 @@ export async function businessOperation(fn:string,args:Record<string,unknown>) {
   const storeKey=prefix(session.user.id)+digest;
   const bind=()=>{
     const previous=localStorage.getItem(storeKey);
-    if(previous)return {key:(JSON.parse(previous) as Marker).id,retry:true};
+    if(previous){
+      const marker=JSON.parse(previous) as Marker;
+      return {key:marker.id,retry:true,previousSession:marker.sessionId!==sessionId(session.access_token)};
+    }
     const key=crypto.randomUUID();
-    localStorage.setItem(storeKey,JSON.stringify({id:key,action:fn,case_id:args.p_id??null}));
-    return {key,retry:false};
+    localStorage.setItem(storeKey,JSON.stringify({id:key,action:fn,case_id:args.p_id??null,sessionId:sessionId(session.access_token)}));
+    return {key,retry:false,previousSession:false};
   };
-  const {key,retry}=navigator.locks ? await navigator.locks.request(storeKey,bind) : bind();
+  const {key,retry,previousSession}=navigator.locks ? await navigator.locks.request(storeKey,bind) : bind();
   try {
     let outcome:Outcome|null=null;
     if(retry){
+      if(previousSession)await call("retire_missing_operation",{p_key:key});
       const results=await call<OperationResult[]>("operation_results",{p_keys:[key]});
-      outcome=results.find(r=>r.id===key)?.result??null;
+      const original=results.find(r=>r.id===key);
+      if(previousSession && !original){
+        if(JSON.parse(localStorage.getItem(storeKey)??"null")?.id===key)localStorage.removeItem(storeKey);
+        throw new Error("前次操作已關閉，請重新確認案件狀態。");
+      }
+      outcome=original?.result??null;
     }
     if(!outcome){
       await call("prepare_operation",{p_key:key,p_action:fn,p_args:args});
