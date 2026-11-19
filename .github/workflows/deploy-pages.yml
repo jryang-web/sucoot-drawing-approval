@@ -27,7 +27,10 @@ jobs:
       # 型別檢查與 ESLint 未通過就不部署
       - run: npm run typecheck
       - run: npm run lint
-      - run: npm run build
+      - run: npm run build -- --mode pages
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
       - name: Publish dist/ to gh-pages
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}

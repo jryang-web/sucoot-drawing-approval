@@ -2,3 +2,4 @@
 declare const __APP_VERSION__: string;
 declare const __BUILD_SHA__: string;
 declare const __BUILD_TIME__: string;
+declare const __PAGES_CONNECTION__: { url: string; key: string } | null;

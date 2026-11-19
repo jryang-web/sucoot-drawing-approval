@@ -3,7 +3,7 @@
 # 只會包含 dist/ 的靜態檔案；前端只有 publishable key（可公開），不含任何密鑰。
 set -euo pipefail
 cd "$(dirname "$0")/.."
-npm run build
+npm run build -- --mode pages
 touch dist/.nojekyll
 SRC_SHA=$(git rev-parse --short HEAD)
 TMP=$(mktemp -d)

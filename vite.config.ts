@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -29,16 +29,38 @@ function serviceWorker(): Plugin {
   };
 }
 
+function pagesConnection(mode: string) {
+  if (mode !== "pages") return null;
+  const env = loadEnv(mode, process.cwd(), "VITE_SUPABASE_");
+  const url = env.VITE_SUPABASE_URL;
+  const key = env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "";
+  if (url !== "https://qifjiaxskortyennnpsh.supabase.co")
+    throw new Error("Pages 建置需要指定的正式 Supabase URL");
+  if (!/^sb_publishable_[A-Za-z0-9_-]+$/.test(key)) {
+    const parts = key.split(".");
+    let valid = false;
+    if (parts.length === 3 && parts.every(part => /^[A-Za-z0-9_-]+$/.test(part))) {
+      try {
+        const claims = JSON.parse(Buffer.from(parts[1], "base64url").toString());
+        valid = claims.role === "anon" && claims.ref === "qifjiaxskortyennnpsh";
+      } catch { /* Reject malformed keys before emitting assets. */ }
+    }
+    if (!valid) throw new Error("Pages 建置需要公開 publishable key 或該專案的 anon JWT");
+  }
+  return { url, key };
+}
+
 // base "./"：搭配 HashRouter，可直接部署到 GitHub Pages 子路徑
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   server: { host: "127.0.0.1", proxy: Object.fromEntries(
     ["/auth/v1", "/rest/v1", "/functions/v1"].map(path => [path, "http://127.0.0.1:54329"])
   ) },
   base: "./",
   plugins: [react(), serviceWorker()],
   define: {
+    __PAGES_CONNECTION__: JSON.stringify(pagesConnection(mode)),
     __APP_VERSION__: JSON.stringify(pkg.version),
     __BUILD_SHA__: JSON.stringify(sha),
     __BUILD_TIME__: JSON.stringify(buildTime),
   },
-});
+}));
