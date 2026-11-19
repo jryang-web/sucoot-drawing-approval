@@ -30,7 +30,7 @@ export default function Delegations() {
   return (
     <>
       <Card title="指定代理審核人">
-        <p className="muted">代理人須具備相同審核角色；起訖日合計最多七個政府上班日；代理人仍受「兩層審核者不得相同」限制。</p>
+        <p className="muted">代理人須具備相同審核角色；工作日為週一至週五，開始日若為工作日即計第 1 日，含結束日最多七個工作日；代理人仍受「兩層審核者不得相同」限制。</p>
         <div className="grid2">
           <div><label>被代理人（原審核者）</label>{empSelect(f.principal, (v) => setF({ ...f, principal: v }))}</div>
           <div><label>代理人</label>{empSelect(f.delegate, (v) => setF({ ...f, delegate: v }))}</div>
