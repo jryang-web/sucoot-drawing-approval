@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { query } from "../lib/api";
 import type { RequestRow, Status } from "../lib/types";
@@ -14,7 +15,8 @@ const KINDS: Record<string, { title: string; statuses: Status[] }> = {
 
 export default function Queue({ all, kind }: { all?: boolean; kind?: "l1" | "l2" | "issue" }) {
   const cfg = all || !kind ? null : KINDS[kind];
-  const [status, setStatus] = useState<string>("");
+  const [params,setParams] = useSearchParams();
+  const status = all ? params.get("status") ?? "" : "";
   const [rows, setRows] = useState<RequestRow[]>([]);
   const [error, setError] = useState<unknown>(null);
 
@@ -32,7 +34,7 @@ export default function Queue({ all, kind }: { all?: boolean; kind?: "l1" | "l2"
     <div className="card">
       <h1>{cfg ? cfg.title : "全部案件"}</h1>
       {!cfg && (
-        <select value={status} onChange={(e) => setStatus(e.target.value)} style={{ maxWidth: 260, marginBottom: 12 }}>
+        <select value={status} onChange={(e) => setParams(e.target.value ? {status:e.target.value} : {})} style={{ maxWidth: 260, marginBottom: 12 }}>
           <option value="">全部狀態</option>
           <option value="OVERDUE">簽收逾期</option>
           {Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}

@@ -9,7 +9,7 @@ import { Card, ErrorBox, useAction } from "../../components/ui";
 const reasons = {
   reset:["忘記密碼","臨時密碼遺失","資安需求","管理員要求","其他"],
   deactivate:["離職","職務異動","資安風險","暫停使用","其他"],
-  activate:["復職","職務調整完成","資安問題解除","其他"],
+  activate:["復職","職務調整完成","資安問題解除","恢復使用","其他"],
 };
 type LoginAction = keyof typeof reasons;
 interface RoleRow { employee_id: string; role: Role }

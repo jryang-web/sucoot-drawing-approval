@@ -22,7 +22,20 @@ export function useRequestDetail(id: string) {
         query<DirectoryEntry[]>(supabase.from("v_employee_directory").select("*")),
         query<Detail["exception"]>(supabase.from("case_exceptions").select("reason,withdrawal_reason").eq("request_id",id).maybeSingle()),
       ]);
-      setData({ r, items, reviews, history, claims, abnormal, revisions, exception,
+      const notes: Detail["notes"] = [];
+      if (exception) {
+        // The case_exceptions and admin_audit_logs SELECT policies both require SYS_ADMIN.
+        for (;;) {
+          let q = supabase.from("admin_audit_logs").select("id,actor_id,created_at,after,reason")
+            .eq("target_type","drawing_request").eq("target_id",id).eq("action","EXCEPTION_NOTE")
+            .order("id",{ascending:false}).limit(100);
+          if (notes.length) q = q.lt("id",notes[notes.length-1].id);
+          const page = await query<Detail["notes"]>(q);
+          notes.push(...page);
+          if (page.length < 100) break;
+        }
+      }
+      setData({ notes, r, items, reviews, history, claims, abnormal, revisions, exception,
         people: Object.fromEntries(people.map((p) => [p.id, p])) });
       setError(null);
     } catch (e) {

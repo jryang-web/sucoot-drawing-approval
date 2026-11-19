@@ -4,6 +4,7 @@ import { useAuth } from "../../lib/auth";
 import { ErrorBox, useAction } from "../../components/ui";
 import { useRequestDetail } from "./useRequestDetail";
 import type { SectionProps } from "./types";
+import { fmt } from "../../lib/labels";
 import MockLine from "../../components/MockLine";
 import Summary from "./sections/Summary";
 import ApplicantActions from "./sections/ApplicantActions";
@@ -50,6 +51,11 @@ export default function RequestDetail() {
         <ReceiptActions {...props} />
         <AbnormalSection {...props} />
         <AdminActions {...props} />
+        {has("SYS_ADMIN") && d.exception && <section><h3>異常補充紀錄</h3>
+          {d.notes.length===0 && <p>尚無補充紀錄。</p>}
+          {d.notes.map(n=><div key={n.id}><b>{n.after.category}</b>｜{fmt(n.created_at)}｜{props.name(n.actor_id)}
+            <p style={{whiteSpace:"pre-wrap"}}>{n.reason}</p></div>)}
+        </section>}
       </section>
       <MockLine key={d.r.id+me.id} id={d.r.id} version={d.r.version}/>
       <details className="r8-card"><summary>審核與案件歷程</summary><HistorySection key={d.r.id} {...props} /></details>
