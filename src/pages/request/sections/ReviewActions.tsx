@@ -30,7 +30,15 @@ export default function ReviewActions({ d, me,has, busy, run, level }: SectionPr
     if (level === 1) {
       args.p_downgrades = downgrade && a === "APPROVE" ? items.filter(i=>i.is_urgent).map(i=>({item_id:i.id, reason:comment.trim()})) : [];
     }
-    const ok = await run(() => rpc(level === 1 ? "review_level1" : "review_level2", args), `第${level === 1 ? "一" : "二"}層已${ACTION_LABEL[a]}`);
+    const ok = await run(async () => {
+      try {
+        await rpc(level === 1 ? "review_level1" : "review_level2", args);
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith("ALREADY_HANDLED:"))
+          throw new Error("案件已由其他主管處理");
+        throw error;
+      }
+    }, `第${level === 1 ? "一" : "二"}層已${ACTION_LABEL[a]}`);
     if (ok) { setComment(""); setDowngrade(false); }
   };
 
