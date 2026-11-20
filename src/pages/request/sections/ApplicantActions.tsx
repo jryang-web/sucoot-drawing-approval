@@ -9,7 +9,8 @@ export default function ApplicantActions({ d, me, busy, run }: SectionProps) {
   const [note, setNote] = useState("");
   if (r.owner_id !== me.id || r.applicant_id !== me.id) return null;
   const st = r.status;
-  const canCancel = ["DRAFT", "PENDING_DEPT_REVIEW", "RETURNED"].includes(st) && !d.reviews.some(x=>x.level===1 && x.action==="APPROVE");
+  const canCancel = ["DRAFT", "PENDING_DEPT_REVIEW", "RETURNED"].includes(st) &&
+    (st === "RETURNED" || !d.reviews.some(x => x.level === 1 && x.action === "APPROVE"));
   if (st !== "DRAFT" && st !== "RETURNED" && !canCancel) return null;
 
   return (

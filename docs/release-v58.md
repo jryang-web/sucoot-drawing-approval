@@ -42,3 +42,4 @@
 4. `20261120000026_drawing_manager_qualification.sql`
 5. `20261120000027_uniform_request_urgency.sql`
 6. `20261120000028_prevent_self_review.sql`
+7. `20261120000029_cancel_returned_requests.sql`
