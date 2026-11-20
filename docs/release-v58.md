@@ -41,3 +41,4 @@
 3. `20261120000025_review_already_handled.sql`
 4. `20261120000026_drawing_manager_qualification.sql`
 5. `20261120000027_uniform_request_urgency.sql`
+6. `20261120000028_prevent_self_review.sql`
