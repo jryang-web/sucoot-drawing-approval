@@ -166,6 +166,14 @@ export default function Employees() {
               <td>{e.is_active ? "啟用" : <span className="badge danger">停用</span>}{e.must_change_password && e.is_active && <div className="muted">待改密碼</div>}</td>
               <td className="row">
                 <button onClick={() => startEdit(e)}>編輯</button>
+                <button disabled={act.busy} onClick={() => {
+                  const grant = !rolesOf(e.id).includes("DRAWING_MANAGER");
+                  const reason = prompt(`${grant ? "授予" : "撤銷"} ${e.name} 圖管主管資格的原因`);
+                  if (reason?.trim()) act.run(async () => {
+                    await rpc("admin_set_drawing_manager", { p_employee: e.id, p_grant: grant, p_reason: reason });
+                    await load();
+                  });
+                }}>{rolesOf(e.id).includes("DRAWING_MANAGER") ? "撤銷" : "授予"}圖管主管資格</button>
                 <button disabled={me?.id===e.id} onClick={()=>openLoginEdit(e,"reset")}>重設密碼</button>
                 <button disabled={me?.id===e.id} className={e.is_active?"danger":""}
                   onClick={()=>openLoginEdit(e,e.is_active?"deactivate":"activate")}>{e.is_active?"停用":"啟用"}</button>

@@ -39,3 +39,4 @@
 1. `20261120000023_cancel_request_states.sql`
 2. `20261120000024_principal_creates_delegation.sql`
 3. `20261120000025_review_already_handled.sql`
+4. `20261120000026_drawing_manager_qualification.sql`
