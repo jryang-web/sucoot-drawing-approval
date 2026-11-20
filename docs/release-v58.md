@@ -37,3 +37,4 @@
 ## v58-fix 增量升級順序（接續 22）
 
 1. `20261120000023_cancel_request_states.sql`
+2. `20261120000024_principal_creates_delegation.sql`
