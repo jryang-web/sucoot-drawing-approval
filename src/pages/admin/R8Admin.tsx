@@ -6,7 +6,7 @@ import { rpc } from "../../lib/api";
 import { ErrorBox } from "../../components/ui";
 import { useAuth } from "../../lib/auth";
 
-const menu = [["employees","員工帳號與角色"],["departments","部門與主管"],["delegations","代理審核"],["all","全部案件"],["alerts","管理警示"],["audit","稽核紀錄"]];
+const menu = [["employees","員工帳號與角色"],["departments","部門與主管"],["delegations","代理審核"],["all","全部案件"],["alerts","管理警示"],["audit","稽核紀錄"],["products","產品主檔管理"]];
 export default function R8Admin() {
   const {me}=useAuth();
   const [counts,setCounts]=useState<number[]>([]);

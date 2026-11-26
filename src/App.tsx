@@ -17,6 +17,7 @@ import Employees from "./pages/admin/Employees";
 import Delegations from "./pages/admin/Delegations";
 import Audit from "./pages/admin/Audit";
 import Alerts from "./pages/admin/Alerts";
+import ProductMaster from "./pages/admin/ProductMaster";
 import VersionInfo from "./pages/VersionInfo";
 import Footer from "./components/Footer";
 import PwaBanner from "./components/PwaBanner";
@@ -64,6 +65,7 @@ export default function App() {
           <Route path="/admin/employees" element={guard("SYS_ADMIN", <Employees />)} />
           <Route path="/admin/delegations" element={guard("SYS_ADMIN", <Delegations />)} />
           <Route path="/admin/audit" element={guard("SYS_ADMIN", <Audit />)} />
+          <Route path="/admin/products" element={guard("SYS_ADMIN", <ProductMaster />)} />
           <Route path="/password" element={<ChangePassword />} />
           <Route path="*" element={<Navigate to="/my" replace />} />
         </Routes>
