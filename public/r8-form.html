@@ -31,7 +31,7 @@ input:not([type=checkbox]):not([type=radio]),select,textarea{max-width:100%}
 .presult .pc{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;color:#173858;word-break:break-all}
 .presult .pn{display:block;font-size:14px;margin-top:2px}.presult .ps{display:block;font-size:12px;color:var(--muted)}
 .presult .tag{font-size:11px;background:#fde8e6;color:#a4352d;border-radius:99px;padding:1px 7px;margin-left:6px}
-.pmsg{padding:11px 12px;font-size:13px;color:var(--muted)}.pmore{display:block;width:100%;border:0;background:#f5f9fd;color:#245b91;font-weight:700;padding:11px;min-height:44px}
+.presults.inline{position:static;box-shadow:none;margin-top:6px}.pmsg{padding:11px 12px;font-size:13px;color:var(--muted)}.pmore{display:block;width:100%;border:0;background:#f5f9fd;color:#245b91;font-weight:700;padding:11px;min-height:44px}
 .picked{font-size:12px;color:#136846;background:#e9f8f0;border:1px solid #b5e0c6;border-radius:8px;padding:5px 9px;margin:-4px 0 10px;display:inline-block}
 @media(max-width:620px){.presults{max-height:55vh}.psearch input{font-size:16px}}
 </style></head><body>
@@ -107,7 +107,7 @@ function showResults(i){
   else if(st.error)html=`<div class="pmsg">搜尋失敗：${esc(st.error)}。仍可手動輸入產品編碼與品名。</div>`;
   else if(!st.items.length)html='<div class="pmsg">找不到符合的產品。請換個關鍵字，或直接在下方手動輸入產品編碼與品名。</div>';
   else html=st.items.map((p,k)=>{const dup=usedElsewhere(p.code,i);return `<button type="button" class="presult${k===st.active?' active':''}" role="option" aria-selected="${k===st.active}" data-pick="${i}" data-k="${k}" ${dup?'disabled':''}><span class="pc">${esc(p.code)}</span>${dup?'<span class="tag">已在本案</span>':''}<span class="pn">${esc(p.name)}</span>${p.spec?`<span class="ps">規格：${esc(p.spec)}</span>`:''}</button>`}).join('')+(st.hasMore?`<button type="button" class="pmore" data-more="${i}">${st.loading?'載入中…':'顯示更多結果'}</button>`:'');
-  box.innerHTML=html;box.hidden=false;input?.setAttribute('aria-expanded','true');
+  box.innerHTML=html;box.classList.toggle('inline',!st.items.length);box.hidden=false;input?.setAttribute('aria-expanded','true');
 }
 function closeResults(i){const box=$('r'+i);if(box)box.hidden=true;$('q'+i)?.setAttribute('aria-expanded','false');}
 async function runSearch(i,q,append){

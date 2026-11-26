@@ -10,6 +10,7 @@
 | `bridge/bridge.mjs` | UI 測試用 API 橋接（127.0.0.1:54329）：Auth 測試替身＋RPC／唯讀查詢以 `authenticated` 角色與 JWT claims 執行 |
 | `regress.sh` | 差異式回歸：對指定程式版本重建資料庫並執行 V5.8 既有測試（fix1–6、p4_recovery、personal_security_notices、business_operations.py） |
 | `e2e.cjs`、`preview.cjs` | Playwright 端對端與手機版面檢查（管理員匯入、員工搜尋送件） |
+| `webkit-safari.cjs` | Safari 相容性：Playwright WebKit＋iPhone 13 設定，測產品搜尋、自動帶入、多筆產品、手動輸入（需另行下載 WebKit：`PLAYWRIGHT_BROWSERS_PATH=<資料夾> playwright install webkit`） |
 | `tools/` | Excel 原始 XML 稽核、資料庫與 Excel 逐筆比對、測試用 Excel 變體產生 |
 
 ## 使用方式
