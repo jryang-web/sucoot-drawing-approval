@@ -21,29 +21,42 @@ input:not([type=checkbox]):not([type=radio]),select,textarea{max-width:100%}
 #sucoot-line-complete button{min-height:44px;white-space:normal}#sucoot-line-status{font-size:13px;color:#355b74;min-height:18px;margin-top:9px}
 #sucoot-line-complete .sucoot-line-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
 @media(max-width:560px){#sucoot-line-complete{padding:12px}#sucoot-line-complete .sucoot-line-actions{display:grid;grid-template-columns:1fr}#sucoot-line-message{font-size:16px!important}}
+</style><style>
+/* V5.9 產品智慧搜尋 */
+.psearch{position:relative;margin-bottom:12px}.psearch label{font-size:13px;font-weight:700;display:block;margin-bottom:5px}
+.psearch input{width:100%;border:1px solid #9fbbd6;border-radius:9px;padding:11px 12px 11px 36px;min-height:44px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23537a9c' stroke-width='2'%3E%3Ccircle cx='7' cy='7' r='5'/%3E%3Cpath d='m11 11 4 4'/%3E%3C/svg%3E") no-repeat 12px center;color:var(--ink)}
+.presults{position:absolute;left:0;right:0;top:100%;z-index:20;margin-top:4px;background:#fff;border:1px solid #c5d6e6;border-radius:10px;box-shadow:0 10px 30px #13304d26;max-height:min(60vh,380px);overflow:auto;overscroll-behavior:contain}
+.presult{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #edf2f7;background:#fff;padding:10px 12px;min-height:44px;cursor:pointer;color:var(--ink);font-weight:400}
+.presult:hover,.presult.active{background:#eaf3fc}.presult:disabled{cursor:not-allowed;opacity:.55;background:#f7f9fb}
+.presult .pc{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;color:#173858;word-break:break-all}
+.presult .pn{display:block;font-size:14px;margin-top:2px}.presult .ps{display:block;font-size:12px;color:var(--muted)}
+.presult .tag{font-size:11px;background:#fde8e6;color:#a4352d;border-radius:99px;padding:1px 7px;margin-left:6px}
+.presults.inline{position:static;box-shadow:none;margin-top:6px}.pmsg{padding:11px 12px;font-size:13px;color:var(--muted)}.pmore{display:block;width:100%;border:0;background:#f5f9fd;color:#245b91;font-weight:700;padding:11px;min-height:44px}
+.picked{font-size:12px;color:#136846;background:#e9f8f0;border:1px solid #b5e0c6;border-radius:8px;padding:5px 9px;margin:-4px 0 10px;display:inline-block}
+@media(max-width:620px){.presults{max-height:55vh}.psearch input{font-size:16px}}
 </style></head><body>
 <div class="mobilebar"><span>SUCOOT <span class="stage">V5.8 原型</span></span><span>新增申請</span></div>
 <div class="layout"><aside class="aside"><div class="brand">SUCOOT<small>圖面申請與審核系統 <span class="stage">測試版</span></small></div><div style="height:15px"></div><span class="nav">工作首頁</span><span class="nav active">＋ 新增申請</span><span class="nav">我的案件</span><span class="nav">通知中心</span><div style="flex:1"></div><span class="nav">版本說明</span></aside>
 <main class="main"><div class="top"><div><div class="eyebrow">SUCOOT · V5.8 介面設計審查</div><h1>新增圖面申請</h1><div class="sub">整案基本資料 → 產品明細 → 檢查確認 → 送出</div></div></div>
 <div class="grid"><div>
 <section class="panel"><div class="panel-h"><h2><span class="step">01</span>申請單基本資料</h2><span class="sub">整案統一設定</span></div><div class="panel-b"><div class="two"><div class="field"><label>申請人</label><div class="readonly"><span id="applicant"></span></div></div><div class="field"><label>申請日期</label><div class="readonly" id="dateText">尚未送出</div><div class="hint">正式系統於首次送出時自動記錄台灣時間，退回重送不變。</div></div></div><div class="two"><div class="field"><label for="purpose">申請用途 <span class="required">*</span></label><select id="purpose"><option value="">請選擇用途</option><option>施工使用</option><option>估價／報價</option><option>設計檢討</option><option>製造加工</option><option>品質檢驗</option><option>文件留存</option><option>其他</option></select></div><div class="field"><span class="lab">優先順序 <span class="required">*</span></span><div class="seg"><label><input checked="" name="urgency" type="radio" value="normal"/>一般件</label><label><input name="urgency" type="radio" value="urgent"/>急件</label></div></div></div><div class="field" hidden="" id="otherWrap"><label for="other">其他用途說明 <span class="required">*</span></label><textarea id="other" placeholder="請填寫申請用途"></textarea></div><div class="field" hidden="" id="urgentWrap"><label for="urgencyReason">急件原因 <span class="required">*</span></label><textarea id="urgencyReason" placeholder="請說明整案需要急件處理的原因"></textarea></div><div class="field" style="margin-bottom:0"><label for="note">整案備註（選填）</label><textarea id="note" placeholder="可補充整張申請單的說明"></textarea></div></div></section>
-<section class="panel"><div class="panel-h"><h2><span class="step">02</span>產品明細</h2><span class="sub" id="count">1 / 5 筆</span></div><div class="panel-b"><div class="note" style="margin-bottom:15px">每張申請單至少 1 筆、最多 5 筆產品。產品編碼限 1–30 個半形英文字母、數字及 <code>_ . / -</code>；同一案件不可重複，英文字母大小寫視為不同。</div><div id="products"></div><button class="add" id="add" type="button">＋ 新增產品（最多 5 筆）</button></div></section>
+<section class="panel"><div class="panel-h"><h2><span class="step">02</span>產品明細</h2><span class="sub" id="count">1 / 5 筆</span></div><div class="panel-b"><div class="note" style="margin-bottom:15px">每張申請單至少 1 筆、最多 5 筆產品。可用「搜尋產品」從產品主檔選取，自動帶入編碼與品名／規格；找不到時可手動輸入（產品編碼限 1–30 個半形英文字母、數字及 <code>_ . / -</code>）。同一案件不可重複，英文字母大小寫視為不同。</div><div id="products"></div><button class="add" id="add" type="button">＋ 新增產品（最多 5 筆）</button></div></section>
 <section class="panel"><div class="panel-h"><h2><span class="step">03</span>確認送出</h2></div><div class="panel-b"><p class="sub">送出前先檢查整案資料。草稿不產生申請日期；確認後寫入本機測試資料庫。</p><div aria-live="polite" id="result"></div><div class="actions"><button class="btn" id="draft" type="button">儲存草稿</button><button class="btn primary" id="check" type="button">檢查並確認送出</button><button class="btn soft" id="clear" type="button">清空重填</button></div></div></section>
 </div><div class="side"><div class="panel sticky"><div class="panel-h"><h2>申請資料摘要</h2><span class="chip">未送出</span></div><div class="panel-b"><div class="summary-row"><span>申請日期</span><strong>尚未送出</strong></div><div class="summary-row"><span>用途</span><strong id="sPurpose">尚未選擇</strong></div><div class="summary-row"><span>優先順序</span><strong id="sUrgency">一般件</strong></div><div class="summary-row"><span>產品筆數</span><strong id="sCount">1 / 5</strong></div><div class="divider"></div><strong class="side-title">產品編碼</strong><div class="sub" id="sItems">尚未填寫</div><div class="divider"></div><div class="note">符合 V5.8：全案用途、全案急件、全案申請日期；不管理版次、逐筆需求日期或逐筆急件。</div></div></div></div></div>
 <footer class="footer"><span>SUCOOT 圖面申請與審核系統</span><span>V5.8 本機測試版</span><button id="versionBtn" type="button">版本號與更新說明</button><span></span></footer></main></div>
 <div aria-labelledby="modalTitle" aria-modal="true" class="dialog-wrap" id="modal" role="dialog"><div class="dialog"><h2 id="modalTitle">確認申請</h2><div id="modalBody"></div><div class="actions"><button class="btn" id="cancelModal" type="button">取消</button><button class="btn primary" id="acceptModal" type="button">確認</button></div></div></div>
 <script>
-const $=id=>document.getElementById(id);let items=[{code:'',name:'',remark:''}],submitted=false;const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const urgent=()=>document.querySelector('[name=urgency]:checked').value==='urgent';const taiwan=()=>new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei',hour12:false});const resetResult=()=>{$('result').innerHTML=''};
-function render(){const focus=document.activeElement?.dataset?.field; $('products').innerHTML=items.map((it,i)=>`<section class="product"><div class="product-head"><div><span class="num">產品 ${i+1}</span> <strong>產品資料</strong></div>${items.length>1?`<button class="btn danger" type="button" data-remove="${i}" aria-label="刪除產品 ${i+1}">刪除</button>`:''}</div><div class="two"><div class="field"><label for="code${i}">產品編碼 <span class="required">*</span></label><input id="code${i}" data-idx="${i}" data-field="code" maxlength="30" value="${esc(it.code)}" placeholder="例如 DW-001" autocomplete="off"/><div class="hint">最多 30 個半形字元</div></div><div class="field"><label for="name${i}">品名/規格 <span class="required">*</span></label><input id="name${i}" data-idx="${i}" data-field="name" value="${esc(it.name)}" placeholder="輸入產品名稱或規格" /></div></div><div class="field" style="margin-bottom:0"><label for="remark${i}">產品備註（選填）</label><input id="remark${i}" data-idx="${i}" data-field="remark" value="${esc(it.remark)}" placeholder="僅此產品的補充說明" /></div></section>`).join('');$('count').textContent=`${items.length} / 5 筆`;$('add').disabled=items.length>=5; summary();}
+const $=id=>document.getElementById(id);let items=[{code:'',name:'',remark:'',picked:''}],submitted=false;const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const urgent=()=>document.querySelector('[name=urgency]:checked').value==='urgent';const taiwan=()=>new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei',hour12:false});const resetResult=()=>{$('result').innerHTML=''};
+function render(){const focus=document.activeElement?.dataset?.field; $('products').innerHTML=items.map((it,i)=>`<section class="product"><div class="product-head"><div><span class="num">產品 ${i+1}</span> <strong>產品資料</strong></div>${items.length>1?`<button class="btn danger" type="button" data-remove="${i}" aria-label="刪除產品 ${i+1}">刪除</button>`:''}</div>${searchBlock(it,i)}<div class="two"><div class="field"><label for="code${i}">產品編碼 <span class="required">*</span></label><input id="code${i}" data-idx="${i}" data-field="code" maxlength="30" value="${esc(it.code)}" placeholder="例如 DW-001" autocomplete="off"/><div class="hint">最多 30 個半形字元</div></div><div class="field"><label for="name${i}">品名/規格 <span class="required">*</span></label><input id="name${i}" data-idx="${i}" data-field="name" value="${esc(it.name)}" placeholder="輸入產品名稱或規格" /></div></div><div class="field" style="margin-bottom:0"><label for="remark${i}">產品備註（選填）</label><input id="remark${i}" data-idx="${i}" data-field="remark" value="${esc(it.remark)}" placeholder="僅此產品的補充說明" /></div></section>`).join('');$('count').textContent=`${items.length} / 5 筆`;$('add').disabled=items.length>=5; summary();}
 function summary(){$('sPurpose').textContent=$('purpose').value||'尚未選擇';$('sUrgency').textContent=urgent()?'急件':'一般件';$('sCount').textContent=`${items.length} / 5`;$('sItems').innerHTML=items.map((x,i)=>`<div style="margin:6px 0">${i+1}. ${esc(x.code.trim()||'尚未填寫')}${x.name.trim()?` · ${esc(x.name.trim())}`:''}</div>`).join('');$('otherWrap').hidden=$('purpose').value!=='其他';$('urgentWrap').hidden=!urgent();}
-$('products').addEventListener('input',e=>{let el=e.target;if(!el.dataset.field)return;items[+el.dataset.idx][el.dataset.field]=el.value;summary();resetResult()});$('products').addEventListener('click',e=>{let b=e.target.closest('[data-remove]');if(!b)return;items.splice(+b.dataset.remove,1);render();resetResult()});$('add').onclick=()=>{if(items.length>=5)return;items.push({code:'',name:'',remark:''});render();$('code'+(items.length-1)).focus();resetResult()};['purpose','other','urgencyReason','note'].forEach(id=>$(id).addEventListener('input',()=>{summary();resetResult()}));document.querySelectorAll('[name=urgency]').forEach(r=>r.addEventListener('change',()=>{summary();resetResult()}));
-function validate(){let errors=[];if(!$('purpose').value)errors.push('請選擇申請用途。');if($('purpose').value==='其他'&&!$('other').value.trim())errors.push('選擇「其他」時，請填寫用途說明。');if(urgent()&&!$('urgencyReason').value.trim())errors.push('急件必須填寫整案急件原因。');if(items.length<1||items.length>5)errors.push('每案必須有 1 至 5 筆產品。');let seen=new Set();items.forEach((x,i)=>{const code=x.code.trim();if(!code)errors.push(`產品 ${i+1}：請輸入產品編碼。`);else if(code.length>30||!/^[A-Za-z0-9_.\/-]+$/.test(code))errors.push(`產品 ${i+1}：產品編碼只允許 1–30 個英數與 _ . / -。`);if(code&&seen.has(code))errors.push(`產品 ${i+1}：產品編碼與同案其他產品重複。`);seen.add(code);if(!x.name.trim())errors.push(`產品 ${i+1}：請填寫品名/規格。`)});return errors;}
+$('products').addEventListener('input',e=>{let el=e.target;if(!el.dataset.field)return;items[+el.dataset.idx][el.dataset.field]=el.value;summary();resetResult()});$('products').addEventListener('click',e=>{let b=e.target.closest('[data-remove]');if(!b)return;items.splice(+b.dataset.remove,1);render();resetResult()});$('add').onclick=()=>{if(items.length>=5)return;items.push({code:'',name:'',remark:'',picked:''});render();$('code'+(items.length-1)).focus();resetResult()};['purpose','other','urgencyReason','note'].forEach(id=>$(id).addEventListener('input',()=>{summary();resetResult()}));document.querySelectorAll('[name=urgency]').forEach(r=>r.addEventListener('change',()=>{summary();resetResult()}));
+function validate(){let errors=[];if(!$('purpose').value)errors.push('請選擇申請用途。');if($('purpose').value==='其他'&&!$('other').value.trim())errors.push('選擇「其他」時，請填寫用途說明。');if(urgent()&&!$('urgencyReason').value.trim())errors.push('急件必須填寫整案急件原因。');if(items.length<1||items.length>5)errors.push('每案必須有 1 至 5 筆產品。');let seen=new Set();items.forEach((x,i)=>{const code=x.code.trim();if(!code)errors.push(`產品 ${i+1}：請輸入產品編碼。`);else if(x.picked!==code&&(code.length>30||!/^[A-Za-z0-9_.\/-]+$/.test(code)))errors.push(`產品 ${i+1}：產品編碼只允許 1–30 個英數與 _ . / -。`);if(code&&seen.has(code))errors.push(`產品 ${i+1}：產品編碼與同案其他產品重複。`);seen.add(code);if(!x.name.trim())errors.push(`產品 ${i+1}：請填寫品名/規格。`)});return errors;}
 function show(title,body,action,yes='確認'){$('modalTitle').textContent=title;$('modalBody').innerHTML=body;$('acceptModal').textContent=yes;$('acceptModal').onclick=()=>{hide();action?.()};$('modal').classList.add('show');$('cancelModal').focus()};function hide(){$('modal').classList.remove('show')} $('cancelModal').onclick=hide;$('modal').addEventListener('click',e=>{if(e.target===$('modal'))hide()});document.addEventListener('keydown',e=>{if(e.key==='Escape')hide()});
 
 window.loadDraft = function(data) {
   const list=data.items;
   const first=list[0];
-  items=list.map(i=>({code:i.drawing_no,name:i.drawing_name,remark:i.remark || ''}));
+  items=list.map(i=>({code:i.drawing_no,name:i.drawing_name,remark:i.remark || '',picked:i.drawing_no}));
   const purpose=first?.purpose || '';
   const known=Array.from($('purpose').options).some(o=>o.value===purpose);
   $('purpose').value=known?purpose:'其他';
@@ -64,7 +77,7 @@ async function persist(submit) {
     const id=await parent.saveR8({
       p_purpose:$('purpose').value==='其他'?'其他：'+$('other').value.trim():$('purpose').value,
       p_urgent:urgent(), p_reason:$('urgencyReason').value, p_note:$('note').value,
-      p_products:items, p_submit:submit
+      p_products:items.map(({code,name,remark})=>({code,name,remark})), p_submit:submit
     });
     if(!submit) parent.location.hash='/r/'+id;
   } catch(error) { $('result').textContent=error.message; submitted=false; }
@@ -78,5 +91,49 @@ $('check').onclick=()=>check(true);
 $('draft').onclick=()=>check(false);
 $('clear').onclick=()=>show('清空表單','清除目前輸入的內容？',()=>location.reload(),'清空');
 $('versionBtn').onclick=()=>parent.location.hash='/version';
+// ===== V5.9 產品智慧搜尋（資料由上層頁面 parent.searchProducts 以後端 RPC 查詢；只回傳啟用中產品） =====
+const canSearch=()=>typeof parent?.searchProducts==='function';
+const found={};let timers={},seqs={};
+function searchBlock(it,i){
+  if(!canSearch())return '';
+  const tag=it.picked&&it.picked===it.code.trim()?`<div class="picked">已由產品主檔帶入：${esc(it.code)}</div>`:'';
+  return `<div class="psearch"><label for="q${i}">搜尋產品（編碼／品名／規格）</label><input id="q${i}" data-q="${i}" type="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="r${i}" autocomplete="off" enterkeyhint="search" placeholder="例如 F26509、槽鋼 2000、紅丹漆"/><div class="presults" id="r${i}" role="listbox" hidden></div></div>${tag}`;
+}
+function usedElsewhere(code,i){return items.some((x,j)=>j!==i&&x.code.trim()===code)}
+function showResults(i){
+  const box=$('r'+i),st=found[i],input=$('q'+i);if(!box||!st)return;
+  let html='';
+  if(st.loading&&!st.items.length)html='<div class="pmsg">搜尋中…</div>';
+  else if(st.error)html=`<div class="pmsg">搜尋失敗：${esc(st.error)}。仍可手動輸入產品編碼與品名。</div>`;
+  else if(!st.items.length)html='<div class="pmsg">找不到符合的產品。請換個關鍵字，或直接在下方手動輸入產品編碼與品名。</div>';
+  else html=st.items.map((p,k)=>{const dup=usedElsewhere(p.code,i);return `<button type="button" class="presult${k===st.active?' active':''}" role="option" aria-selected="${k===st.active}" data-pick="${i}" data-k="${k}" ${dup?'disabled':''}><span class="pc">${esc(p.code)}</span>${dup?'<span class="tag">已在本案</span>':''}<span class="pn">${esc(p.name)}</span>${p.spec?`<span class="ps">規格：${esc(p.spec)}</span>`:''}</button>`}).join('')+(st.hasMore?`<button type="button" class="pmore" data-more="${i}">${st.loading?'載入中…':'顯示更多結果'}</button>`:'');
+  box.innerHTML=html;box.classList.toggle('inline',!st.items.length);box.hidden=false;input?.setAttribute('aria-expanded','true');
+}
+function closeResults(i){const box=$('r'+i);if(box)box.hidden=true;$('q'+i)?.setAttribute('aria-expanded','false');}
+async function runSearch(i,q,append){
+  const seq=(seqs[i]=(seqs[i]||0)+1);const st=found[i]=append?found[i]:{q,items:[],hasMore:false,active:-1};
+  st.loading=true;st.error='';showResults(i);
+  try{const res=await parent.searchProducts(q,append?st.items.length:0);if(seq!==seqs[i])return;
+    st.items=append?st.items.concat(res.items):res.items;st.hasMore=res.has_more;}
+  catch(e){if(seq!==seqs[i])return;st.error=e?.message||'無法連線';}
+  st.loading=false;showResults(i);
+}
+function pick(i,k){
+  const p=found[i]?.items[k];if(!p||usedElsewhere(p.code,i))return;
+  items[i].code=p.code;items[i].name=p.spec?`${p.name} / ${p.spec}`:p.name;items[i].picked=p.code;
+  delete found[i];render();resetResult();$('remark'+i)?.focus();
+}
+$('products').addEventListener('input',e=>{const el=e.target;if(el.dataset.q===undefined)return;const i=+el.dataset.q,q=el.value.trim();
+  clearTimeout(timers[i]);if(!q){delete found[i];closeResults(i);return}timers[i]=setTimeout(()=>runSearch(i,q,false),250)});
+$('products').addEventListener('click',e=>{const b=e.target.closest('[data-pick]');if(b){pick(+b.dataset.pick,+b.dataset.k);return}
+  const m=e.target.closest('[data-more]');if(m){const i=+m.dataset.more;if(found[i]&&!found[i].loading)runSearch(i,found[i].q,true)}});
+$('products').addEventListener('keydown',e=>{const el=e.target;if(el.dataset.q===undefined)return;const i=+el.dataset.q,st=found[i];
+  if(e.key==='Escape'){closeResults(i);return}if(!st||!st.items.length)return;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();st.active=Math.max(0,Math.min(st.items.length-1,st.active+(e.key==='ArrowDown'?1:-1)));showResults(i);$('r'+i).querySelector('.active')?.scrollIntoView({block:'nearest'})}
+  else if(e.key==='Enter'){e.preventDefault();pick(i,st.active>=0?st.active:0)}});
+document.addEventListener('click',e=>{if(!e.target.closest('.psearch'))Object.keys(found).forEach(i=>closeResults(+i))});
+$('products').addEventListener('focusin',e=>{const el=e.target;if(el.dataset.q!==undefined&&found[+el.dataset.q])showResults(+el.dataset.q)});
+// 手動修改產品編碼後，取消「主檔帶入」標記（改回 V5.8 手動輸入規則）
+$('products').addEventListener('change',e=>{const el=e.target;if(el.dataset.field==='code'){const it=items[+el.dataset.idx];if(it.picked&&it.picked!==it.code.trim()){it.picked='';render()}}});
 render();
 </script></body></html>

@@ -1,0 +1,22 @@
+/* 產品主檔管理（沿用 r8 樣式） */
+.pm .r8-card { max-width: 100%; }
+.pm-rules { margin: 0 0 12px; padding-left: 20px; font-size: 14px; color: #36495c; }
+.pm-upload { display: inline-flex; align-items: center; cursor: pointer; }
+.pm-counts { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.pm-bad { border-color: #f4c8c2 !important; background: #fff1ee !important; }
+.pm-bad strong { color: #a4352d !important; }
+.pm-risk { border: 2px solid #e9a43a; }
+.pm-riskbox { background: #fff6e6; border: 1px solid #f0c77b; border-radius: 10px; padding: 12px 14px; margin: 12px 0; color: #5b3b06; }
+.pm-riskbox p { margin: 6px 0 10px; }
+.pm-riskbox label { display: block; margin: 8px 0; font-size: 14px; }
+.pm-riskbox input:not([type=checkbox]) { display: block; margin-top: 4px; max-width: 220px; padding: 9px; border: 1px solid #d9b46a; border-radius: 8px; font-size: 16px; }
+.pm-warn { margin: 10px 0; font-size: 14px; color: #36495c; }
+.pm-warn ul { margin: 6px 0 0; padding-left: 20px; columns: 2; }
+.pm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pm-table th, .pm-table td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #e3e9ef; vertical-align: top; }
+.tablewrap { overflow-x: auto; }
+@media (max-width: 650px) {
+  .pm-counts { grid-template-columns: repeat(2, 1fr); }
+  .pm-warn ul { columns: 1; }
+  .pm-upload { width: 100%; justify-content: center; }
+}

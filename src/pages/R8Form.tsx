@@ -8,9 +8,12 @@ import { useAuth } from "../lib/auth";
 import type {Item,RequestRow} from "../lib/types";
 
 type Draft=Pick<RequestRow,"id"|"note"|"version"|"status"> & {items:Item[]};
+/** V5.9 產品主檔搜尋結果（後端只回傳啟用中產品，每頁 20 筆） */
+type ProductSearch={items:{code:string;name:string;spec:string}[];has_more:boolean};
 declare global {
   interface Window {
     saveR8?: (args: Record<string, unknown>) => Promise<string>;
+    searchProducts?: (query: string, offset?: number) => Promise<ProductSearch>;
     loadDraft?: (draft:Draft)=>void;
   }
 }
@@ -43,6 +46,10 @@ export default function R8Form() {
     };
     return () => { delete window.saveR8; };
   }, [id,draft]);
+  useEffect(() => {
+    window.searchProducts = (query, offset = 0) => rpc<ProductSearch>("search_products", { p_query: query, p_limit: 20, p_offset: offset });
+    return () => { delete window.searchProducts; };
+  }, []);
   if(error)return <ErrorBox error={error}/>;
   if(id && draft?.id!==id)return <p>載入中…</p>;
   if(sent)return <><div className="r8-card"><h2>首次申請已送出</h2><Link to={"/r/"+sent}>查看案件</Link></div><MockLine id={sent}/></>;

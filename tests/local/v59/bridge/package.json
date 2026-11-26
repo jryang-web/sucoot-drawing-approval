@@ -1,0 +1,9 @@
+{
+  "name": "sucoot-v59-local-bridge",
+  "private": true,
+  "type": "module",
+  "description": "隔離 UI 測試用 API 橋接（僅本機）",
+  "dependencies": {
+    "pg": "8.13.1"
+  }
+}
