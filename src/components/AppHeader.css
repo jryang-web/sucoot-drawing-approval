@@ -1,0 +1,40 @@
+/* 共用頁首：白底（與 LOGO 原始透明背景及現有白底介面一致），LOGO 不改色、不變形，只等比例縮放 */
+.app-header {
+  background: #fff;
+  border-bottom: 1px solid #dce4ed;
+  padding-top: env(safe-area-inset-top, 0px); /* PWA 全螢幕：避開瀏海／狀態列 */
+}
+.app-header__inner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  padding: 10px 22px;
+  padding-left: max(22px, env(safe-area-inset-left, 0px));
+  padding-right: max(22px, env(safe-area-inset-right, 0px));
+}
+.app-header__logo { display: flex; align-items: center; gap: 10px; flex: none; }
+.app-header__mark { display: block; height: 44px; width: auto; }
+.app-header__wordmark { display: block; height: 20px; width: auto; }
+.app-header__divider { flex: none; width: 1px; height: 30px; background: #dce4ed; }
+.app-header__system { font-size: 15px; font-weight: 700; color: #192c3e; line-height: 1.25; min-width: 0; }
+.app-header__system small { display: block; font-size: 12px; font-weight: 400; color: #62758a; }
+
+/* 平板／手機：縮小頁首，保留操作空間 */
+@media (max-width: 860px) {
+  .app-header__inner { min-height: 52px; gap: 10px; padding-top: 7px; padding-bottom: 7px; padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+  .app-header__logo { gap: 8px; }
+  .app-header__mark { height: 34px; }
+  .app-header__wordmark { height: 15px; }
+  .app-header__divider { height: 24px; }
+  .app-header__system { font-size: 14px; }
+}
+
+/* 窄螢幕手機：系統名稱與版本併成一行 */
+@media (max-width: 380px) {
+  .app-header__inner { gap: 8px; }
+  .app-header__mark { height: 30px; }
+  .app-header__wordmark { height: 13px; }
+  .app-header__system { font-size: 13px; }
+  .app-header__system small { display: none; }
+}

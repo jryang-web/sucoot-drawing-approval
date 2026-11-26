@@ -20,16 +20,17 @@ import Alerts from "./pages/admin/Alerts";
 import VersionInfo from "./pages/VersionInfo";
 import Footer from "./components/Footer";
 import PwaBanner from "./components/PwaBanner";
+import AppHeader from "./components/AppHeader";
 
 
 export default function App() {
   const { session, me, loading, error, signOut, has } = useAuth();
   const { pathname } = useLocation();
   // 版本說明不需登入即可查看
-  if (pathname === "/version") return <><PwaBanner /><VersionInfo /><Footer /></>;
+  if (pathname === "/version") return <><PwaBanner /><AppHeader /><VersionInfo /><Footer /></>;
   if (loading) return <main><p className="muted">載入中…</p></main>;
-  if (!session || !me) return <><PwaBanner /><Login notice={error} /><Footer /></>;
-  if (me.must_change_password) return <><PwaBanner /><ChangePassword forced /><Footer /></>;
+  if (!session || !me) return <><PwaBanner /><AppHeader /><Login notice={error} /><Footer /></>;
+  if (me.must_change_password) return <><PwaBanner /><AppHeader /><ChangePassword forced /><Footer /></>;
 
   // 依角色保護路由：沒有權限的網址一律導回「我的案件」（後端 RPC 另有權限檢查）
   const guard = (role: Role, el: ReactElement) => (has(role) ? el : <Navigate to="/my" replace />);
@@ -37,8 +38,9 @@ export default function App() {
   return (
     <>
       <PwaBanner />
+      <AppHeader />
       <div className="root"><nav className="nav" aria-label="SUCOOT 主要功能">
-        <div className="logo">SUCOOT<small>圖面申請與審核 · V5.8</small></div><div className="nav-tabs">
+        <div className="nav-tabs">
         {tab("/my", "工作首頁")}
         {tab("/new", "新增申請")}
         {tab(pathname.startsWith("/r/") ? pathname : "/detail", "案件明細與操作")}
