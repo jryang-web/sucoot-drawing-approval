@@ -16,10 +16,10 @@
 ## 2. 正式發布步驟（需核准）
 
 1. **發布前核對**
-   - 確認正式專案為 `qifjiaxskortyennnpsh`，`supabase_migrations.schema_migrations` 最新版本為 `20261120000029`。
+   - 確認正式專案為 `qifjiaxskortyennnpsh`，`supabase_migrations.schema_migrations` **現有 28 筆**，最新版本為 **`20261120131928`（`v58_cancel_returned_requests`）**；這是正式 V5.8 實際部署的基準，不能按文件舊版本 `20261120000029` 重寫或重跑既有紀錄。
    - 確認 `pg_trgm` 可用：`select * from pg_available_extensions where name = 'pg_trgm'`。
-   - 確認 `public.write_r8_application` 現行定義與 migration 14 相同（避免覆蓋未知的線上修正）。
-2. **套用 migration 030**（單一交易；失敗即全部回滾）。
+   - 確認 `public.write_r8_application` 現行定義與 V5.9 所預期的 V5.8 函式內容一致（避免覆蓋未知的線上修正）；正式 V5.8 的 `authenticated` 對此函式 **目前沒有直接 EXECUTE 權限**，migration 030 `CREATE OR REPLACE` 必須維持原授權，不能因測試或部署而自行 `GRANT`。
+2. **套用 migration 030**（單一交易；失敗即全部回滾）。**保留已上線 V5.8 的 28 筆 migration 歷史、既有 RPC/RLS、角色、部門、Auth 與 LOGO，不清空或重建正式資料庫。**
 3. **權限核對**（同一連線）：
    - `anon`、`authenticated` 對 `products`、`product_master_state`、`product_import_batches`、`product_import_rows` 無任何資料表權限。
    - `authenticated` 可執行 `search_products`、`admin_product_*`；`anon` 不可。
