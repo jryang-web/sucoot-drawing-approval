@@ -82,4 +82,5 @@
 | iPhone Safari 實機 | 已以 Playwright WebKit（iPhone 13 設定）驗證產品搜尋與手動輸入；**實機尚未驗證** |
 | LINE 內建瀏覽器、已安裝 PWA | 未測試；需實機確認 |
 | 正式 Supabase（PostgREST／GoTrue） | 隔離環境以 shim＋本機 API 橋接模擬；正式環境的 Auth、PostgREST 行為須於發布審核時驗證 |
+| 正式環境 safeupdate | 正式 Supabase 對 PostgREST 連線啟用 `safeupdate`（UPDATE／DELETE 必須有 WHERE），隔離環境未安裝此擴充。發布後管理員確認同步時，`admin_product_import_commit` 更新主檔版本列未寫 WHERE 而被拒絕（交易整批回滾，未寫入任何產品）。修正：migration 031 補上 `where id`；新增 `tests/local/v59_safeupdate_check.sql` 靜態掃描所有函式，修正前可抓到此問題、修正後 0 筆；正式環境掃描僅此一處 |
 | 測試過程發現的問題 | 本機 API 橋接逐段解碼造成中文亂碼（測試工具缺陷，非系統問題），已修正並重新以全量逐筆比對驗證 |
