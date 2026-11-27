@@ -39,7 +39,7 @@ export default function RequestDetail() {
 
   return (
     <>
-      <div className="r8-toolbar"><Link to="/my" className="r8-btn">← 返回工作首頁</Link><span>{me.employee_no}｜{me.department_name}</span></div>
+      <div className="r8-toolbar"><Link to="/detail" className="r8-btn">← 返回案件列表</Link><span>{me.employee_no}｜{me.department_name}</span></div>
       <Summary {...props} />
       <section className="r8-card r8-work">
         {msg && <div className="okmsg">{msg}</div>}

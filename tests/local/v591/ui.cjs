@@ -228,10 +228,12 @@ async function hideShow(page) {
     await page.route("**/functions/v1/push-dispatch", (r) => r.request().method() === "GET"
       ? r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ publicKey: null }) }) : r.continue());
     await login(page, "TEST001");
-    await page.waitForFunction(() => document.querySelector('[aria-label="通知與角標"]')?.textContent.includes("尚未開放"), null, { timeout: 10000 }).catch(() => {});
-    const txt = await page.textContent('[aria-label="通知與角標"]');
-    check("C11 伺服器尚未設定推播：顯示「背景通知尚未開放」、不顯示啟用按鈕，App 內計數照常",
-      txt.includes("背景通知尚未開放") && (await page.locator('button:has-text("啟用通知")').count()) === 0 && txt.includes("最後同步") && errors.length === 0, txt.slice(0, 160));
+    const home = await page.textContent('[aria-label="通知與角標"]');
+    await page.goto(B + "/#/password");
+    await page.waitForFunction(() => document.querySelector('[aria-label="背景通知"]')?.textContent.includes("尚未開放"), null, { timeout: 10000 }).catch(() => {});
+    const txt = await page.textContent('[aria-label="背景通知"]');
+    check("C11 伺服器尚未設定推播：設定頁顯示「背景通知尚未開放」、不顯示啟用按鈕，首頁計數照常",
+      txt.includes("背景通知尚未開放") && (await page.locator('button:has-text("啟用通知")').count()) === 0 && home.includes("最後同步") && errors.length === 0, txt.slice(0, 160));
     await page.screenshot({ path: `${out}/08-推播尚未開放.png` });
     await page.click("button.logout"); await page.waitForSelector("#no");
     check("C12 登入頁只顯示「忘記密碼請聯絡系統管理員」（AGENTS.md 第 1 節）", (await page.textContent("form, .loggedout, main")).includes("忘記密碼請聯絡系統管理員")
@@ -292,12 +294,12 @@ async function hideShow(page) {
     await page.screenshot({ path: `${out}/03-Android模擬-通知點擊後案件頁.png` });
 
     // 啟用通知按鈕（使用者點擊後才要求權限；隔離環境無法連線 FCM）
-    await page.goto(B + "/#/my"); await page.waitForSelector('[aria-label="通知與角標"]');
+    await page.goto(B + "/#/password"); await page.waitForSelector('[aria-label="背景通知"]');
     const btn = page.locator('button:has-text("啟用通知")');
     check("C6 有「啟用通知」按鈕；頁面載入時未自動要求權限", await btn.count() === 1);
     await btn.click();
-    await page.waitForSelector('[aria-label="通知與角標"] [role=alert]', { timeout: 20000 }).catch(() => {});
-    const msg = await page.textContent('[aria-label="通知與角標"] [role=alert]').catch(() => "");
+    await page.waitForSelector('[aria-label="背景通知"] [role=alert]', { timeout: 20000 }).catch(() => {});
+    const msg = await page.textContent('[aria-label="背景通知"] [role=alert]').catch(() => "");
     const subs = (await q("select count(*)::int n from app.push_subscriptions s join public.employees e on e.id = s.employee_id where e.employee_no = 'TEST004' and s.revoked_at is null"))[0].n;
     check("C7 按下啟用通知：取得權限並嘗試建立瀏覽器訂閱（結果如實顯示）", !!msg, `訊息：「${msg}」；資料庫有效訂閱 ${subs} 筆`);
     await page.screenshot({ path: `${out}/04-Android模擬-啟用通知結果.png` });
@@ -359,9 +361,11 @@ async function hideShow(page) {
     const page = await ctx.newPage();
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await login(page, "TEST001");
-    const txt = await page.textContent('[aria-label="通知與角標"]');
     const t1 = await total("TEST001");
     check("T22 WebKit iPhone：App 內計數正確", (await cardNumbers(page))[2] === String(t1), `${(await cardNumbers(page))[2]} vs ${t1}`);
+    const badgeTxt = await page.textContent('[aria-label="通知與角標"]');
+    await page.goto(B + "/#/password"); await page.waitForSelector('[aria-label="背景通知"]');
+    const txt = badgeTxt + (await page.textContent('[aria-label="背景通知"]'));
     check("T22 WebKit iPhone（設定檔為 iOS 15）：說明需 iOS 16.4 以上、並提示「標記」設定", txt.includes("iOS 16.4 以上才支援") && txt.includes("標記"), txt.slice(0, 200));
     check("T22 WebKit iPhone：未加入主畫面時不顯示啟用按鈕、不要求權限", await page.locator('button:has-text("啟用通知")').count() === 0);
     await page.screenshot({ path: `${out}/05-iPhone模擬-通知與角標.png`, fullPage: false });
@@ -374,7 +378,8 @@ async function hideShow(page) {
     const ctx17 = await wb.newContext({ ...devices["iPhone 13"], userAgent: devices["iPhone 13"].userAgent.replace(/OS 15_0/, "OS 17_5").replace(/Version\/15\.0/, "Version/17.5") });
     const p17 = await ctx17.newPage();
     await login(p17, "TEST001");
-    const t17 = await p17.textContent('[aria-label="通知與角標"]');
+    await p17.goto(B + "/#/password"); await p17.waitForSelector('[aria-label="背景通知"]');
+    const t17 = await p17.textContent('[aria-label="背景通知"]');
     check("T22 WebKit iPhone（iOS 17、未加入主畫面）：說明須先「加入主畫面」再從主畫面開啟", t17.includes("加入主畫面") && !(await p17.locator('button:has-text("啟用通知")').count()), t17.slice(0, 200));
     await p17.screenshot({ path: `${out}/06-iPhone模擬-iOS17-需加入主畫面.png` });
     await ctx17.close(); await wb.close();

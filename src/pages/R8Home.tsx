@@ -1,17 +1,13 @@
 import { SecurityNotices } from "../components/SecurityNotices";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "../lib/auth";
-import { query, rpc } from "../lib/api";
-import { supabase } from "../lib/supabase";
-import { STATUS_LABEL } from "../lib/labels";
-import type { RequestRow } from "../lib/types";
+import { rpc } from "../lib/api";
+import { loadWorkRequests, type WorkRequest } from "../lib/workRequests";
+import { CaseRow } from "../components/CaseRow";
 import { ErrorBox } from "../components/ui";
 import { NotificationSettings } from "../components/NotificationSettings";
 import { CaseNotices } from "../components/CaseNotices";
 import { requestBadgeRefresh } from "../lib/badge";
-
-type WorkRequest = RequestRow & { approved_l1_by_me: boolean };
 
 export default function R8Home() {
   const {me, has} = useAuth();
@@ -22,14 +18,7 @@ export default function R8Home() {
   useEffect(() => {
     let current=true;
     async function load() {
-      const requests: WorkRequest[]=[];
-      const pageSize=500;
-      for (;;) {
-        const batch=await query<WorkRequest[]>(supabase.from("v_work_requests").select("*")
-          .order("updated_at",{ascending:false}).order("id").range(requests.length,requests.length+pageSize-1));
-        requests.push(...batch);
-        if(batch.length<pageSize)break;
-      }
+      const requests=await loadWorkRequests();
       const managed=me?.roles.includes("DEPT_MANAGER") ? await rpc<string[]>("my_l1_departments") : [];
       if(current){setRows(requests);setDepartments(managed);setError(null);}
     }
@@ -46,11 +35,10 @@ export default function R8Home() {
     {label:"待簽收", show:has("EMPLOYEE"), rows:rows.filter(r=>r.status==="PENDING_RECEIPT" && r.owner_id===me.id)}
   ].filter(g=>g.show);
   const tasks=[...new Map(groups.flatMap(g=>g.rows).map(r=>[r.id,r])).values()];   // 同一案件只列一次
-  const row=(r:RequestRow)=><div className="r8-case-row" key={r.id}><div><b>{r.request_no}</b> <span className="r8-pill">{STATUS_LABEL[r.status]}</span><div className="r8-muted">{r.department_name}｜{r.item_count} 筆｜{r.is_urgent?"急件":"一般件"}</div></div><Link className="r8-btn" to={'/r/'+r.id}>查看案件</Link></div>;
+  const row=(r:WorkRequest)=><CaseRow key={r.id} r={r}/>;
   return <><ErrorBox error={error}/><section className="r8-card"><h2>我的工作</h2><div className="r8-metrics">{[{label:"我的案件",rows:rows.filter(r=>r.applicant_id===me.id)},...groups].map(g=><div className="r8-meter" key={g.label}><strong>{g.rows.length}</strong>{g.label}</div>)}</div></section>
     <section className="r8-card"><h2>目前待辦（{tasks.length}）</h2>{tasks.length?tasks.map(row):"目前沒有待辦。"}</section>
     <NotificationSettings key={"n"+me.id}/>
     <CaseNotices key={"c"+me.id}/>
-    <SecurityNotices key={me.id}/>
-    <section className="r8-card"><h2>案件查詢與權限可視化</h2>{rows.map(row)}</section></>;
+    <SecurityNotices key={me.id}/></>;
 }
