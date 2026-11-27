@@ -69,6 +69,7 @@ export function PushSettings() {
 
   return <section className="r8-card" aria-label="背景通知">
     <h2>背景通知</h2>
+    {!enabled && <p><b>建議開啟，才能收到通知。</b></p>}
     {enabled ? <p>此裝置已啟用通知：有新的待辦時會收到通知並更新角標。</p>
       : !support.supported ? <p className="r8-muted">{BLOCKER[support.blocker!]}</p>
       : support.permission === "denied" ? <p className="r8-muted">此裝置已拒絕 SUCOOT 通知；請到裝置或瀏覽器設定中允許通知。</p>
