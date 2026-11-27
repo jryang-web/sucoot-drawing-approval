@@ -1,6 +1,6 @@
 # CLAUDE.md — SUCOOT 圖面申請與審核系統
 
-本專案的業務規則、權限與授權原則都在 **`AGENTS.md`**，工作前必須先閱讀並遵守：
+本專案的業務規則、權限與授權原則都在 **`AGENTS.md`**（由下一行自動匯入），工作時須遵守：
 
 @AGENTS.md
 
@@ -25,7 +25,7 @@ npm run build -- --mode pages # 正式網站建置（讀取 .env.local，並檢�
 
 ## 工作原則摘要（詳見 AGENTS.md）
 
-- 修改程式、推送 GitHub、變更 Supabase、部署前須取得使用者授權；先在分支與隔離環境測試。
+- 修改程式、推送 GitHub、部署前須取得使用者授權；Supabase 操作已有長期授權（範圍見 AGENTS.md 第 0.2 條）；先在分支與隔離環境測試。
 - 正式資料庫變更一律以 `supabase/migrations/` 記錄；所有 `UPDATE`／`DELETE` 須有 `WHERE`（正式啟用 safeupdate）。
 - 不得產生、讀取或輸出正式金鑰與 Secrets；不得在程式、日誌或聊天中出現密碼或金鑰。
 - 規格與發布紀錄：`docs/release-*.md`、`docs/*-test-report.md`。
