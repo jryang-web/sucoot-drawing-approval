@@ -11,10 +11,12 @@ import { checkVapidKeys } from "./webpush.ts";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
-const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
-const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "";
-const CRON_SECRET = Deno.env.get("PUSH_CRON_SECRET") ?? "";
+// Secrets 去除前後空白與換行（從檔案或編輯器複製貼上時常夾帶換行）
+const secret = (name: string) => (Deno.env.get(name) ?? "").trim();
+const VAPID_PUBLIC_KEY = secret("VAPID_PUBLIC_KEY");
+const VAPID_PRIVATE_KEY = secret("VAPID_PRIVATE_KEY");
+const VAPID_SUBJECT = secret("VAPID_SUBJECT");
+const CRON_SECRET = secret("PUSH_CRON_SECRET");
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -38,10 +40,13 @@ const store: Store = {
   },
 };
 
-// 設定檢查只做一次（Secrets 變更後函式會重新啟動）；只回傳錯誤代碼，不輸出金鑰
+// 設定檢查只做一次（Secrets 變更後函式會重新啟動）；只回傳狀態代碼（名稱與檢查結果），不輸出任何值
 let configError: Promise<string | null> | null = null;
-const vapidConfigError = () =>
-  (configError ??= checkVapidKeys({ publicKey: VAPID_PUBLIC_KEY, privateKey: VAPID_PRIVATE_KEY, subject: VAPID_SUBJECT }));
+const vapidConfigError = () => (configError ??= (async () => {
+  const missing = Object.entries({ VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT }).filter(([, v]) => !v).map(([k]) => k);
+  if (missing.length) return "MISSING:" + missing.join(",");
+  return await checkVapidKeys({ publicKey: VAPID_PUBLIC_KEY, privateKey: VAPID_PRIVATE_KEY, subject: VAPID_SUBJECT });
+})());
 
 function sameSecret(a: string, b: string): boolean {
   if (!a || !b || a.length !== b.length) return false;
@@ -63,16 +68,18 @@ async function isEmployee(req: Request): Promise<boolean> {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  const configured = !!(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY && VAPID_SUBJECT);
-  if (req.method === "GET") return json(200, { publicKey: configured && !(await vapidConfigError()) ? VAPID_PUBLIC_KEY : null });
+  if (req.method === "GET") {
+    // status：OK／MISSING:<名稱>／VAPID_SUBJECT_INVALID／VAPID_KEY_MISMATCH／VAPID_*_INVALID（供維護人員檢查，不含任何值）
+    const bad = await vapidConfigError();
+    return json(200, { publicKey: bad ? null : VAPID_PUBLIC_KEY, status: bad ?? "OK", cron: CRON_SECRET.length >= 32 ? "SET" : "NOT_SET" });
+  }
   if (req.method !== "POST") return json(405, { error: "METHOD_NOT_ALLOWED" });
 
   const cron = sameSecret(req.headers.get("x-push-cron-secret") ?? "", CRON_SECRET);
   if (!cron && !(await isEmployee(req))) return json(401, { error: "UNAUTHORIZED" });
-  if (!configured) return json(503, { error: "PUSH_NOT_CONFIGURED" });
-  // 金鑰不配對或 sub 格式錯誤時不取出佇列（避免整批失敗），由管理員修正 Secrets
+  // 未設定、金鑰不配對或 sub 格式錯誤時不取出佇列（避免整批失敗），由管理員修正 Secrets
   const bad = await vapidConfigError();
-  if (bad) { console.error("push-dispatch config", bad); return json(503, { error: bad }); }
+  if (bad) { console.error("push-dispatch config", bad); return json(503, { error: bad.startsWith("MISSING:") ? "PUSH_NOT_CONFIGURED" : bad }); }
 
   try {
     const summary = await dispatch(store, { publicKey: VAPID_PUBLIC_KEY, privateKey: VAPID_PRIVATE_KEY, subject: VAPID_SUBJECT });
