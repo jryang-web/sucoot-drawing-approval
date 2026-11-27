@@ -12,6 +12,7 @@ import "./r8.css";
 
 import RequestDetail from "./pages/request/RequestDetail";
 import CaseSearch from "./pages/CaseSearch";
+import DrawingReport from "./pages/DrawingReport";
 import Queue from "./pages/Queue";
 import Departments from "./pages/admin/Departments";
 import Employees from "./pages/admin/Employees";
@@ -52,6 +53,7 @@ export default function App() {
         {tab("/my", "工作首頁", badge.owner === me.id ? badge.total : null)}
         {tab("/new", "新增申請")}
         {tab(pathname.startsWith("/r/") ? pathname : "/detail", "案件明細與操作")}
+        {has("DRAWING_STAFF") && tab("/report", "申請紀錄報表")}
         {has("SYS_ADMIN") && tab("/admin", "系統管理")}
         {tab("/password", "設定")}
       </div></nav>
@@ -74,6 +76,7 @@ export default function App() {
           <Route path="/admin/audit" element={guard("SYS_ADMIN", <Audit />)} />
           <Route path="/admin/products" element={guard("SYS_ADMIN", <ProductMaster />)} />
           <Route path="/admin/push" element={guard("SYS_ADMIN", <PushLog />)} />
+          <Route path="/report" element={guard("DRAWING_STAFF", <DrawingReport />)} />
           <Route path="/password" element={<ChangePassword before={<PushSettings key={me.id} />} />} />
           <Route path="*" element={<Navigate to="/my" replace />} />
         </Routes>
