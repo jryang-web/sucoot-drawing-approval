@@ -1,0 +1,7 @@
+{
+  "name": "sucoot-v591-push-tests",
+  "private": true,
+  "type": "module",
+  "description": "V5.9.1 推播隔離測試（只連本機隔離資料庫與本機假推播服務）",
+  "dependencies": { "http_ece": "1.2.0", "pg": "8.13.1" }
+}
