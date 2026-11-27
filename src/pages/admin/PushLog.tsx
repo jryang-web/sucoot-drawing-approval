@@ -10,7 +10,8 @@ interface Summary { subscriptions: { active: number; revoked: number }; outbox: 
 
 const KIND: Record<string, string> = { L1: "第一層待審", L2: "第二層待審", ISSUE: "圖面待發行", RETURNED: "退回補件", RECEIPT: "待簽收", ABNORMAL: "整案異常" };
 const STATUS: Record<string, string> = { PENDING: "等待發送／重試", SENDING: "發送中", SENT: "推播服務已接受", FAILED: "失敗", SKIPPED: "略過" };
-const ERROR: Record<string, string> = { NO_SUBSCRIPTION: "收件人未啟用通知", NOT_ELIGIBLE: "發送前已不是待辦（例如已被他人處理）" };
+const ERROR: Record<string, string> = { NO_SUBSCRIPTION: "收件人未啟用通知", NOT_ELIGIBLE: "發送前已不是此類待辦（已被他人處理、類別已改變或帳號停用）",
+  DISPATCH_INTERRUPTED: "發送程式中斷超過 5 次" };
 
 export default function PushLog() {
   const [data, setData] = useState<Summary | null>(null);

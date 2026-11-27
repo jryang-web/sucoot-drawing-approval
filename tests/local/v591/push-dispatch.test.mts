@@ -8,7 +8,7 @@ import crypto from "node:crypto";
 import pg from "pg";
 import ece from "http_ece";
 import { dispatch, type Store, type Batch } from "../../../supabase/functions/push-dispatch/dispatch.ts";
-import { b64urlEncode, endpointAllowed } from "../../../supabase/functions/push-dispatch/webpush.ts";
+import { b64urlEncode, checkVapidKeys, endpointAllowed, vapidSubjectValid } from "../../../supabase/functions/push-dispatch/webpush.ts";
 
 const pool = new pg.Pool({ host: "/var/lib/postgresql/sucoot-v59/run", port: 54330, user: "postgres", database: "postgres" });
 const results: { name: string; ok: boolean; detail?: string }[] = [];
@@ -181,6 +181,25 @@ try {
     && !endpointAllowed("https://fcm.googleapis.com:8443/x") && !endpointAllowed("https://user@fcm.googleapis.com/x")
     && !endpointAllowed("https://127.0.0.1/x"));
   void req4;
+
+  // ---------- 5. VAPID 設定檢查（Edge Function 取出佇列前先檢查；只回傳錯誤代碼）
+  const other = crypto.generateKeyPairSync("ec", { namedCurve: "P-256" }).privateKey.export({ format: "jwk" });
+  check("V1 公私鑰配對正確 → 通過", (await checkVapidKeys(keys)) === null);
+  check("V2 私鑰與公鑰不配對 → VAPID_KEY_MISMATCH", (await checkVapidKeys({ ...keys, privateKey: other.d! })) === "VAPID_KEY_MISMATCH");
+  check("V3 金鑰格式錯誤 → 錯誤代碼（不含金鑰內容）",
+    (await checkVapidKeys({ ...keys, privateKey: "short" })) === "VAPID_PRIVATE_KEY_INVALID"
+    && (await checkVapidKeys({ ...keys, publicKey: "AAAA" })) === "VAPID_PUBLIC_KEY_INVALID");
+  check("V4 VAPID_SUBJECT：mailto 信箱與公司網站網址皆接受",
+    vapidSubjectValid("mailto:it@sucoot.com") && vapidSubjectValid("https://www.sucoot.com/") && vapidSubjectValid("https://www.sucoot.com"));
+  check("V5 VAPID_SUBJECT：http、純信箱、空白、本機網址皆拒絕",
+    !vapidSubjectValid("http://www.sucoot.com/") && !vapidSubjectValid("it@sucoot.com") && !vapidSubjectValid("")
+    && !vapidSubjectValid("mailto:it") && !vapidSubjectValid("https://localhost"));
+  // 私鑰錯誤時：送出結果為失敗並依退避重試，不會停在「發送中」
+  await q("update app.push_subscriptions set endpoint = $1, revoked_at = null, revoke_reason = null where endpoint like 'https://169.254%'", [BASE + "/ok/dev1"]);
+  const req5 = await submit("TEST001");
+  await dispatch(store, { ...keys, privateKey: "bad" }, { extraHosts });
+  const ob5 = (await q("select status, last_error from app.push_outbox where request_id = $1", [req5]))[0];
+  check("V6 金鑰錯誤 → 佇列改為等待重試（VAPID_CONFIG_ERROR），不卡在發送中", ob5?.status === "PENDING" && (ob5?.last_error ?? "").includes("VAPID_CONFIG_ERROR"), JSON.stringify(ob5));
 } catch (e) {
   check("FATAL", false, (e as Error).stack ?? String(e));
 } finally {

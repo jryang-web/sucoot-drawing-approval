@@ -6,6 +6,7 @@
 // 秘密（VAPID_PRIVATE_KEY、PUSH_CRON_SECRET、service_role key）只存在 Supabase Secrets，不會回傳或寫入日誌。
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { dispatch, type Batch, type Store } from "./dispatch.ts";
+import { checkVapidKeys } from "./webpush.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -37,6 +38,11 @@ const store: Store = {
   },
 };
 
+// 設定檢查只做一次（Secrets 變更後函式會重新啟動）；只回傳錯誤代碼，不輸出金鑰
+let configError: Promise<string | null> | null = null;
+const vapidConfigError = () =>
+  (configError ??= checkVapidKeys({ publicKey: VAPID_PUBLIC_KEY, privateKey: VAPID_PRIVATE_KEY, subject: VAPID_SUBJECT }));
+
 function sameSecret(a: string, b: string): boolean {
   if (!a || !b || a.length !== b.length) return false;
   let d = 0;
@@ -58,12 +64,15 @@ async function isEmployee(req: Request): Promise<boolean> {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const configured = !!(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY && VAPID_SUBJECT);
-  if (req.method === "GET") return json(200, { publicKey: configured ? VAPID_PUBLIC_KEY : null });
+  if (req.method === "GET") return json(200, { publicKey: configured && !(await vapidConfigError()) ? VAPID_PUBLIC_KEY : null });
   if (req.method !== "POST") return json(405, { error: "METHOD_NOT_ALLOWED" });
 
   const cron = sameSecret(req.headers.get("x-push-cron-secret") ?? "", CRON_SECRET);
   if (!cron && !(await isEmployee(req))) return json(401, { error: "UNAUTHORIZED" });
   if (!configured) return json(503, { error: "PUSH_NOT_CONFIGURED" });
+  // 金鑰不配對或 sub 格式錯誤時不取出佇列（避免整批失敗），由管理員修正 Secrets
+  const bad = await vapidConfigError();
+  if (bad) { console.error("push-dispatch config", bad); return json(503, { error: bad }); }
 
   try {
     const summary = await dispatch(store, { publicKey: VAPID_PUBLIC_KEY, privateKey: VAPID_PRIVATE_KEY, subject: VAPID_SUBJECT });

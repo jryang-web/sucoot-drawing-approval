@@ -344,6 +344,89 @@ begin
     and (select message from app.push_enqueue_errors order by id desc limit 1) like '%SIMULATED_PUSH_FAILURE%');
   drop trigger boom on app.push_outbox;
 
+  -- ========== 上線前補強：發送前資格重驗（舊佇列防護）
+  update app.push_outbox set status = 'SENT', locked_until = null where status in ('PENDING','SENDING');
+  -- Q1 待辦類別改變：TEST003（製造部主管兼圖管主管）的第一層通知尚未送出，案件已由代理人 TEST007 核准而轉為第二層
+  insert into public.review_delegations (principal_id, delegate_id, level, valid_from, valid_to, reason, created_by)
+    values (pg_temp.emp('TEST003'), pg_temp.emp('TEST007'), 1, app.today_tpe(), app.today_tpe() + 6, '類別測試', pg_temp.emp('TEST003'))
+    returning id into dlg;
+  e := pg_temp.apply('TEST002');
+  perform pg_temp.ok('Q1 前置：TEST003 有尚未送出的第一層通知', (select status from app.push_outbox where employee_id = pg_temp.emp('TEST003') and request_id = e and kind = 'L1') = 'PENDING');
+  perform pg_temp.ok('Q1 前置：代理人 TEST007 第一層核准 → 案件轉第二層', pg_temp.act('TEST007', 'review_level1', e, '{"p_action":"APPROVE"}'));
+  j := public.svc_push_claim(100);
+  perform pg_temp.ok('Q1 類別已改變：舊的第一層通知改為略過、不送出',
+    (select status || ':' || last_error from app.push_outbox where employee_id = pg_temp.emp('TEST003') and request_id = e and kind = 'L1') = 'SKIPPED:NOT_ELIGIBLE');
+  perform pg_temp.ok('Q1 類別已改變：只送出新的第二層通知',
+    exists (select 1 from jsonb_array_elements(j) x where x->>'employee_id' = pg_temp.emp('TEST003')::text and x->>'kind' = 'L2'
+              and (select bool_and(k.kind = 'L2') from app.push_outbox k where k.id in (select y::bigint from jsonb_array_elements_text(x->'outbox_ids') y))));
+  update public.review_delegations set revoked_at = now(), revoked_by = pg_temp.emp('TEST003'), revoke_reason = '測試結束' where id = dlg;
+  update app.push_outbox set status = 'SENT', locked_until = null where status in ('PENDING','SENDING');
+
+  -- Q2 失去權限：代理期間排入的通知，代理撤銷後才發送 → 不送給前代理人
+  insert into public.review_delegations (principal_id, delegate_id, level, valid_from, valid_to, reason, created_by)
+    values (pg_temp.emp('TEST003'), pg_temp.emp('TEST007'), 1, app.today_tpe(), app.today_tpe() + 6, '權限測試', pg_temp.emp('TEST003'))
+    returning id into dlg;
+  e := pg_temp.apply('TEST002');
+  update public.review_delegations set revoked_at = now(), revoked_by = pg_temp.emp('TEST003'), revoke_reason = '撤銷' where id = dlg;
+  j := public.svc_push_claim(100);
+  perform pg_temp.ok('Q2 代理撤銷後，尚未送出的代理人通知改為略過',
+    (select status from app.push_outbox where employee_id = pg_temp.emp('TEST007') and request_id = e) = 'SKIPPED'
+    and not exists (select 1 from jsonb_array_elements(j) x where x->>'employee_id' = pg_temp.emp('TEST007')::text));
+  update app.push_outbox set status = 'SENT', locked_until = null where status in ('PENDING','SENDING');
+
+  -- Q3／Q4 排入後、發送前帳號停用或被重設密碼 → 不送出
+  e := pg_temp.apply('TEST001');
+  update public.employees set is_active = false where employee_no = 'TEST003';
+  j := public.svc_push_claim(100);
+  perform pg_temp.ok('Q3 排入後帳號停用：該員工通知改為略過',
+    (select status from app.push_outbox where employee_id = pg_temp.emp('TEST003') and request_id = e) = 'SKIPPED');
+  update public.employees set is_active = true where employee_no = 'TEST003';
+  update app.push_outbox set status = 'SENT', locked_until = null where status in ('PENDING','SENDING');
+  e := pg_temp.apply('TEST001');
+  update public.employees set must_change_password = true where employee_no = 'TEST003';
+  j := public.svc_push_claim(100);
+  perform pg_temp.ok('Q4 排入後管理員重設密碼：該員工通知改為略過',
+    (select status from app.push_outbox where employee_id = pg_temp.emp('TEST003') and request_id = e) = 'SKIPPED');
+  update public.employees set must_change_password = false where employee_no = 'TEST003';
+  update app.push_outbox set status = 'SENT', locked_until = null where status in ('PENDING','SENDING');
+
+  -- Q5 同一手機 A（TEST003）→ B（TEST007）：A 登出時停用失敗（未呼叫 push_unregister），B 登入後裝置改歸 B
+  insert into auth.sessions (user_id) select auth_user_id from public.employees where employee_no = 'TEST003';
+  r := pg_temp.run('TEST003', 'select public.push_register(''https://fcm.googleapis.com/fcm/send/shared-phone'', repeat(''E'',87), repeat(''F'',22))::text');
+  r := pg_temp.run('TEST007', 'select public.push_register(''https://fcm.googleapis.com/fcm/send/shared-phone'', repeat(''E'',87), repeat(''F'',22))::text');
+  perform pg_temp.ok('Q5 前置：同一 endpoint 只有一筆，已改歸 B',
+    (select count(*) from app.push_subscriptions where endpoint = 'https://fcm.googleapis.com/fcm/send/shared-phone') = 1
+    and (select employee_id from app.push_subscriptions where endpoint = 'https://fcm.googleapis.com/fcm/send/shared-phone') = pg_temp.emp('TEST007'));
+  e := pg_temp.apply('TEST001');                                   -- 製造部案件：只有 A（TEST003）有待辦
+  j := public.svc_push_claim(100);
+  perform pg_temp.ok('Q5 切換帳號後，A 的通知不會送到已改歸 B 的手機',
+    not exists (select 1 from jsonb_array_elements(j) x, jsonb_array_elements(x->'subscriptions') s
+                 where x->>'employee_id' = pg_temp.emp('TEST003')::text and s->>'endpoint' like '%shared-phone'));
+  update app.push_outbox set status = 'SENT', locked_until = null where status in ('PENDING','SENDING');
+  insert into public.manager_departments (manager_id, department_id) select pg_temp.emp('TEST007'), department_id from public.employees where employee_no = 'TEST001';
+  e := pg_temp.apply('TEST001');                                   -- 讓 B 也有待辦
+  j := public.svc_push_claim(100);
+  perform pg_temp.ok('Q5 B 自己的通知會送到這支手機',
+    exists (select 1 from jsonb_array_elements(j) x, jsonb_array_elements(x->'subscriptions') s
+             where x->>'employee_id' = pg_temp.emp('TEST007')::text and s->>'endpoint' like '%shared-phone'));
+  update app.push_outbox set status = 'SENT', locked_until = null where status in ('PENDING','SENDING');
+  -- B 登出時停用失敗：只要 B 的工作階段已失效，後端仍不再送到這支手機
+  delete from auth.sessions where user_id = (select auth_user_id from public.employees where employee_no = 'TEST007');
+  insert into auth.sessions (user_id) select auth_user_id from public.employees where employee_no = 'TEST007';
+  e := pg_temp.apply('TEST001');
+  j := public.svc_push_claim(100);
+  perform pg_temp.ok('Q6 訂閱停用失敗但工作階段已失效：後端不再送到該手機',
+    not exists (select 1 from jsonb_array_elements(j) x, jsonb_array_elements(x->'subscriptions') s where s->>'endpoint' like '%shared-phone'));
+  update app.push_outbox set status = 'SENT', locked_until = null where status in ('PENDING','SENDING');
+
+  -- Q7 發送程式中斷（取出後未回報）：鎖逾時後重試，達 5 次即失敗，不無限重試
+  e := pg_temp.apply('TEST001');
+  update app.push_outbox set status = 'SENDING', attempts = 5, locked_until = now() - interval '1 minute' where request_id = e;
+  j := public.svc_push_claim(100);
+  perform pg_temp.ok('Q7 發送中斷達 5 次 → FAILED（DISPATCH_INTERRUPTED）',
+    (select bool_and(status = 'FAILED' and last_error = 'DISPATCH_INTERRUPTED') from app.push_outbox where request_id = e));
+  update app.push_outbox set status = 'SENT', locked_until = null where status in ('PENDING','SENDING');
+
   -- 管理員摘要不含敏感欄位
   r := pg_temp.run('TEST006', 'select public.admin_push_summary()::text');
   perform pg_temp.ok('P5 推播摘要不含 endpoint／金鑰', r like 'OK:%' and r not like '%googleapis%' and r not like '%apple.com%' and r not like '%p256dh%');

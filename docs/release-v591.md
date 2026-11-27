@@ -13,17 +13,58 @@
 | 前端 | 角標同步、通知與角標卡片、啟用通知、登出清除、Service Worker 推播與通知點擊 |
 | 圖示 | **不變**：V5.8（PR #7）已使用公司正式 LOGO，尺寸齊全，未重複修改 |
 
-## 2. 正式部署前需要準備（不得寫入 GitHub 或聊天）
+## 2. Secrets 準備（公司授權系統維護人員自行操作）
 
-| 名稱 | 類型 | 說明 |
-|---|---|---|
-| `VAPID_PUBLIC_KEY` | Edge Function Secret（公開值） | P-256 公鑰（base64url，65 bytes）。前端透過 `GET push-dispatch` 取得 |
-| `VAPID_PRIVATE_KEY` | Edge Function Secret（**機密**） | 對應私鑰（base64url，32 bytes）。**只放 Supabase Secrets** |
-| `VAPID_SUBJECT` | Edge Function Secret | 聯絡資訊，例如 `mailto:<公司 IT 信箱>` 或正式網站網址 |
-| `PUSH_CRON_SECRET` | Edge Function Secret＋Vault（**機密**） | 排程重試呼叫用的隨機字串（建議 32 bytes 以上） |
-| `SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`SUPABASE_ANON_KEY` | 平台自動注入 | 不需手動設定，不得寫入程式 |
+> **Claude 與開發人員不產生、不經手正式金鑰。** 私鑰與排程密鑰不得出現在聊天、GitHub、SQL migration、測試日誌、截圖或終端機指令列。
 
-VAPID 金鑰由公司授權維護人員於自己的電腦產生（例如 `npx web-push generate-vapid-keys`），直接貼入 Supabase Dashboard → Edge Functions → Secrets。**金鑰一旦更換，所有裝置需重新啟用通知**（前端會偵測公鑰不同並在下次啟用時重新訂閱）。
+| 名稱 | 機密 | 存放位置 | 說明 |
+|---|---|---|---|
+| `VAPID_PUBLIC_KEY` | 否（公開值） | Edge Function Secrets | P-256 公鑰（base64url，87 字元）。前端以 `GET push-dispatch` 取得 |
+| `VAPID_PRIVATE_KEY` | **是** | Edge Function Secrets | 對應私鑰（base64url，43 字元） |
+| `VAPID_SUBJECT` | 否 | Edge Function Secrets | `mailto:<公司正式 IT 維護信箱>`（建議）或 `https://www.sucoot.com/`（見 2.1） |
+| `PUSH_CRON_SECRET` | **是** | Edge Function Secrets **與** Vault（同一值） | 排程呼叫用，256 位元隨機值 |
+| `SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`SUPABASE_ANON_KEY` | — | 平台自動注入 | 不需設定 |
+
+### 2.1 VAPID_SUBJECT 建議
+
+- **標準**：RFC 8292 規定 `sub` 應為 `mailto:` 或 `https:` URI，讓推播服務（Apple、Google、Mozilla）在發送異常時能聯絡應用程式擁有者；Apple 推播服務會拒絕格式不符的 `sub`。
+- **程式支援**：`push-dispatch` 兩種格式皆接受（`vapidSubjectValid`）；格式錯誤時函式回 `VAPID_SUBJECT_INVALID`，**不取出佇列**，避免整批失敗。`http:`、純信箱（缺 `mailto:`）、本機網址一律拒絕。
+- **建議優先**：`mailto:<公司正式 IT 維護信箱>`——推播服務可直接聯絡到負責人。
+- **替代**：`https://www.sucoot.com/`——符合標準，但僅代表公司網站識別，**不等於有專屬 IT 聯絡信箱**；推播服務若需聯絡，可能無法直接找到維護人員。
+- **正式採用值須由公司維護人員確認。**
+
+### 2.2 產生與驗證金鑰（在維護人員自己的電腦，需 Node.js 18 以上）
+
+```bash
+# 1. 產生：檔案寫在專案以外的私人資料夾（權限 700／600）；畫面只顯示公鑰
+node scripts/vapid-keys.mjs generate ~/sucoot-push-keys
+# 2. 驗證：格式、公私鑰配對（以私鑰簽章、公鑰驗證）、檔案權限、VAPID_SUBJECT 格式；不顯示私鑰
+node scripts/vapid-keys.mjs verify ~/sucoot-push-keys "mailto:<公司正式 IT 維護信箱>"
+```
+
+- 產生三個檔案：`vapid_public_key.txt`、`vapid_private_key.txt`、`push_cron_secret.txt`（排程密鑰為 32 bytes 隨機值）。
+- 工具拒絕覆寫既有檔案、拒絕寫入專案資料夾；不連網；只用 Node.js 內建 crypto。
+- 密鑰只存在檔案中、不出現在指令列，因此不會進入終端機歷史。驗證結果只顯示公鑰與私鑰指紋（SHA-256 前 12 碼），可用來核對，但無法還原私鑰。
+- 不建議 `npx web-push generate-vapid-keys`：它會把私鑰直接顯示在畫面上（留在終端機捲動紀錄）。
+
+### 2.3 填入 Edge Function Secrets（Dashboard）
+
+1. 登入 Supabase Dashboard → 專案 `sucoot-drawing-dev`（`qifjiaxskortyennnpsh`）→ **Edge Functions → Secrets**。
+2. 依序新增四筆（Key 與 Value）：`VAPID_PUBLIC_KEY`、`VAPID_PRIVATE_KEY`、`VAPID_SUBJECT`、`PUSH_CRON_SECRET`。Value 以文字編輯器開啟對應檔案後複製貼上（`VAPID_SUBJECT` 直接輸入確認後的值）；注意不要多貼空白或換行。
+3. 儲存。Secrets 立即生效，不需重新部署。
+4. 核對：Dashboard 的 Secrets 清單只顯示雜湊／名稱即可；**不要**以任何方式把值顯示或匯出。
+
+### 2.4 `PUSH_CRON_SECRET` 存入 Vault（僅在啟用排程時）
+
+1. Dashboard → **Vault**（Integrations 或 Database 選單下，依 Dashboard 版本）→ **Add new secret**。
+2. Name：`sucoot_push_cron_secret`；Secret：貼上與 Edge Function 相同的 `PUSH_CRON_SECRET`。
+3. **不要**在 SQL Editor 以 `vault.create_secret('<值>', …)` 建立：SQL Editor 會保存查詢紀錄與片段，密鑰會以明文留存。
+
+### 2.5 完成後清理
+
+- 填入並確認函式正常（第 3 節步驟 4）後，刪除 `~/sucoot-push-keys` 三個檔案（或移至公司核准的密碼保管系統，**私鑰備份須與一般檔案分開**）。
+- 不要把檔案放入雲端同步資料夾、Email、即時通訊或 GitHub。
+- **更換金鑰**：重新產生並更新 Secrets 後，所有裝置需重新按「啟用通知」（前端偵測公鑰不同時會重新訂閱）。
 
 ## 3. 正式發布步驟（依序；每步需授權）
 
@@ -36,15 +77,14 @@ VAPID 金鑰由公司授權維護人員於自己的電腦產生（例如 `npx we
    - `my_badge_summary`、`push_register`、`push_unregister`、`push_status`、`admin_push_summary` 僅 `authenticated` 可執行；`anon` 不可。
    - `svc_push_claim`、`svc_push_report` 僅 `service_role` 可執行。
    - 執行 `tests/local/v59_safeupdate_check.sql` 的查詢：0 筆。
-4. **設定 Secrets**（第 2 節），再部署 Edge Function `push-dispatch`。
-   - 建議 `verify_jwt = false`：函式自行驗證（員工 JWT 經 `me()` 確認、或排程密鑰），GET 只回傳公開的 VAPID 公鑰。若維持預設 `verify_jwt = true`，排程呼叫需另帶有效 JWT。
-5. **（建議）排程重試**：啟用 `pg_net`、`pg_cron`，將 `PUSH_CRON_SECRET` 存入 Vault，每分鐘在佇列有到期項目時呼叫一次：
+4. **設定 Secrets**（第 2 節），再部署 Edge Function `push-dispatch`，**關閉平台 JWT 驗證**（CLI：`supabase functions deploy push-dispatch --no-verify-jwt`；或 Dashboard 函式設定關閉「Enforce JWT verification」）。
+   - 理由：排程呼叫沒有使用者 JWT；函式自行驗證呼叫者（員工 JWT 經 `me()` 確認有效員工，或比對排程密鑰；排程密鑰未設定時一律拒絕）。GET 只回傳公開的 VAPID 公鑰。這也是 Supabase 文件對自行驗證之函式的建議做法。
+   - 部署後由已登入員工在 App 開啟「通知與角標」：若顯示「推播服務尚未設定」，代表 Secrets 缺漏或金鑰不配對（函式只回傳錯誤代碼 `PUSH_NOT_CONFIGURED`／`VAPID_KEY_MISMATCH`／`VAPID_SUBJECT_INVALID`，可在函式日誌查看）。
+5. **（建議）排程重試**：啟用 `pg_net`、`pg_cron`；`PUSH_CRON_SECRET` 依 2.4 以 Vault UI 存入後，於 SQL Editor 執行（**此 SQL 不含任何密鑰**）：
 
    ```sql
    create extension if not exists pg_net;
    create extension if not exists pg_cron;
-   -- 秘密值由維護人員在 SQL Editor 輸入，不寫入 repo
-   select vault.create_secret('<PUSH_CRON_SECRET>', 'sucoot_push_cron_secret');
    select cron.schedule('sucoot-push-dispatch', '* * * * *', $job$
      select net.http_post(
        url := 'https://qifjiaxskortyennnpsh.supabase.co/functions/v1/push-dispatch',
@@ -55,7 +95,11 @@ VAPID 金鑰由公司授權維護人員於自己的電腦產生（例如 `npx we
    $job$);
    ```
 
-   未設定排程時，推播仍會在員工完成案件操作後由前端觸發發送；但暫時失敗的重試要等到下一次有人操作。
+   - 只有佇列中有到期項目時才呼叫；函式比對排程密鑰後處理佇列。
+   - 重試流程：推播服務 5xx／逾時／連線失敗 → 1、4、16、64 分鐘後重試，**共 5 次**後 FAILED；404／410 → 停用該裝置訂閱；發送程式中斷（2 分鐘鎖逾時未回報）→ 自動重新取出，達 5 次即 FAILED；金鑰設定錯誤 → 函式回 503、不取出佇列。
+   - 驗證：`select * from cron.job_run_details order by start_time desc limit 5;`、`select status_code from net._http_response order by created desc limit 5;`（200＝已處理；401＝排程密鑰不一致；503＝推播設定錯誤）。
+   - 未設定排程時，推播仍會在員工完成案件操作後由前端觸發發送；但暫時失敗的重試要等到下一次有人操作。
+
 6. **合併前端**（PR → `main` → GitHub Pages 自動部署）。
 7. **實機驗收**（第 5 節）。
 
@@ -67,7 +111,7 @@ VAPID 金鑰由公司授權維護人員於自己的電腦產生（例如 `npx we
 
 1. 前端：revert 合併 commit 後推送 `main`（Pages 重新部署）。已開啟的 PWA 需按「更新」或重新開啟。
 2. 排程（若已建立）：`select cron.unschedule('sucoot-push-dispatch');`
-3. Edge Function：於 Dashboard 刪除 `push-dispatch`，並刪除 `VAPID_*`、`PUSH_CRON_SECRET`。
+3. Edge Function：於 Dashboard 刪除 `push-dispatch`，並刪除 `VAPID_*`、`PUSH_CRON_SECRET` Secrets 與 Vault 中的 `sucoot_push_cron_secret`。
 4. 資料庫（單一交易；**已在隔離資料庫實測**：V5.9.1 物件全數移除，正式送件仍正常）：
 
    ```sql

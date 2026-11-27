@@ -4,8 +4,8 @@
 
 | 檔案 | 內容 |
 |---|---|
-| `../v591_badge_push.sql` | 後端 70 項：角標計數、多角色去重、部門管轄、代理有效／撤銷／過期、跨層核准排除、認領、權限、停用／重設密碼、訂閱驗證（SSRF）、佇列去重、失敗不回滾、重試與失效訂閱（交易內執行並回滾） |
-| `push-dispatch.test.mts` | 發送端 15 項：以獨立實作 `http_ece` 解密、Node crypto 驗證 VAPID 簽章；410 停用、500 重試、連線失敗、5 次上限、內部位址阻擋 |
+| `../v591_badge_push.sql` | 後端 82 項：角標計數、多角色去重、部門管轄、代理有效／撤銷／過期、跨層核准排除、認領、權限、停用／重設密碼、訂閱驗證（SSRF）、佇列去重、失敗不回滾、重試與失效訂閱（交易內執行並回滾） |
+| `push-dispatch.test.mts` | 發送端 21 項：以獨立實作 `http_ece` 解密、Node crypto 驗證 VAPID 簽章；410 停用、500 重試、連線失敗、5 次上限、內部位址阻擋、VAPID 配對與 subject 格式 |
 | `ui.cjs` | 瀏覽器 40 項：Chromium 桌面／Android 模擬、WebKit iPhone 模擬；角標同步時機、登出清除、不支援 Badging API、離線標示、Service Worker 推播與通知點擊、manifest／圖示、管理員推播紀錄 |
 | `shims.d.ts`、`tsconfig.json` | 測試與 Edge Function 共用模組的型別檢查 |
 

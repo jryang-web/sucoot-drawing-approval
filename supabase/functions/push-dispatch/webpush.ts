@@ -41,6 +41,8 @@ export interface PushTarget { endpoint: string; p256dh: string; auth: string }
 
 // VAPID 公鑰：65 bytes 未壓縮點；私鑰：32 bytes d（皆為 base64url）
 async function vapidSigningKey(keys: VapidKeys): Promise<CryptoKey> {
+  if (!/^[A-Za-z0-9_-]{87}$/.test(keys.publicKey)) throw new Error("VAPID_PUBLIC_KEY_INVALID");
+  if (!/^[A-Za-z0-9_-]{43}$/.test(keys.privateKey)) throw new Error("VAPID_PRIVATE_KEY_INVALID");
   const pub = b64urlDecode(keys.publicKey);
   if (pub.length !== 65 || pub[0] !== 4) throw new Error("VAPID_PUBLIC_KEY_INVALID");
   const d = b64urlDecode(keys.privateKey);
@@ -49,6 +51,27 @@ async function vapidSigningKey(keys: VapidKeys): Promise<CryptoKey> {
     kty: "EC", crv: "P-256", d: keys.privateKey,
     x: b64urlEncode(pub.slice(1, 33)), y: b64urlEncode(pub.slice(33, 65)), ext: false,
   }, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+}
+
+// RFC 8292：sub 應為 mailto: 或 https: URI（Apple 推播服務會拒絕格式不符者）
+export function vapidSubjectValid(subject: string): boolean {
+  return /^mailto:[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(subject) || /^https:\/\/[^\s/?#]+\.[^\s/?#]+(\/\S*)?$/.test(subject);
+}
+
+// 設定檢查：公鑰／私鑰格式、配對（以私鑰簽章、公鑰驗證）、sub 格式。回傳錯誤代碼，不含任何金鑰內容。
+export async function checkVapidKeys(keys: VapidKeys): Promise<string | null> {
+  if (!vapidSubjectValid(keys.subject)) return "VAPID_SUBJECT_INVALID";
+  try {
+    const signer = await vapidSigningKey(keys);
+    const pub = await crypto.subtle.importKey("raw", b64urlDecode(keys.publicKey), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+    const probe = crypto.getRandomValues(new Uint8Array(32));
+    const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, signer, probe);
+    return (await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, pub, sig, probe)) ? null : "VAPID_KEY_MISMATCH";
+  } catch (e) {
+    // 格式已先檢查（VAPID_*_INVALID）；之後的匯入失敗代表公私鑰不一致（部分環境在匯入時即拒絕不一致的金鑰）
+    const m = (e as Error).message;
+    return m.startsWith("VAPID_") ? m : "VAPID_KEY_MISMATCH";
+  }
 }
 
 export async function vapidAuthorization(endpoint: string, keys: VapidKeys, ttlSeconds = 12 * 3600): Promise<string> {
@@ -113,12 +136,19 @@ export async function sendWebPush(target: PushTarget, payload: unknown, keys: Va
   } catch (e) {
     return { http_status: null, accepted: false, gone: true, error: (e as Error).message.slice(0, 60) };
   }
+  let authorization: string;
+  try {
+    authorization = await vapidAuthorization(target.endpoint, keys);
+  } catch {
+    // 金鑰設定錯誤：回報為失敗（依退避重試，最多 5 次），不讓整批停在「發送中」
+    return { http_status: null, accepted: false, gone: false, error: "VAPID_CONFIG_ERROR" };
+  }
   const headers: Record<string, string> = {
     "Content-Encoding": "aes128gcm",
     "Content-Type": "application/octet-stream",
     TTL: String(opts.ttl ?? 86400),
     Urgency: opts.urgency ?? "normal",
-    Authorization: await vapidAuthorization(target.endpoint, keys),
+    Authorization: authorization,
   };
   if (opts.topic) headers.Topic = opts.topic;   // 同主題未送達的舊通知由推播服務取代
   try {

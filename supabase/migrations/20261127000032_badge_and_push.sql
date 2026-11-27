@@ -252,13 +252,16 @@ create or replace function public.svc_push_claim(p_limit int default 50) returns
 language plpgsql volatile security definer set search_path = '' as $$
 declare rows jsonb;
 begin
-  -- 已不再是待辦、或收件人已停用／需改密碼的項目直接略過
+  -- 發送端中斷（鎖逾時未回報）且已達 5 次 → 失敗，不再無限重試
+  update app.push_outbox o set status = 'FAILED', last_error = 'DISPATCH_INTERRUPTED', locked_until = null
+   where o.status = 'SENDING' and o.locked_until < now() and o.attempts >= 5;
+  -- 收件人已停用／需改密碼、已失去權限、或待辦類別已改變（例如第一層已轉為第二層）→ 不發送舊通知
   update app.push_outbox o set status = 'SKIPPED', last_error = 'NOT_ELIGIBLE', locked_until = null
    where o.status in ('PENDING','SENDING') and o.next_attempt_at <= now()
      and (o.locked_until is null or o.locked_until < now())
      and not exists (select 1 from public.employees e join public.drawing_requests r on r.id = o.request_id
                       where e.id = o.employee_id and e.is_active and not e.must_change_password
-                        and app.pending_kind(e.id, r) is not null);
+                        and app.pending_kind(e.id, r) = o.kind);
   -- 鎖定本批（並發的發送端以 skip locked 分流，不會重複發送同一筆）
   with due as (
     select o.id from app.push_outbox o
