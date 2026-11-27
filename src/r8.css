@@ -32,3 +32,6 @@
   .tablewrap{overflow:visible}.report-table{font-size:8pt}.report-table th,.report-table td{padding:3px 4px;border:1px solid #999}.report-table{width:100%!important}.report-table th,.report-table td:nth-child(n+2){white-space:normal!important}
   .report-table thead{display:table-header-group}.report-table tr{break-inside:avoid}
 }
+
+/* 我的代理審核 */
+.deleg-table th,.deleg-table td:first-child,.deleg-table td:last-child{white-space:nowrap}

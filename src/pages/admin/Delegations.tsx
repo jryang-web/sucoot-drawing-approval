@@ -25,6 +25,7 @@ export default function Delegations() {
     <>
       <ErrorBox error={act.error} />
       <Card title="代理紀錄">
+        <p className="muted">代理由部門主管／圖管主管本人在「設定 &gt; 我的代理審核」建立；管理員可在此查看與撤銷。</p>
         <div className="tablewrap"><table><thead><tr><th>層級</th><th>被代理人</th><th>代理人</th><th>期間</th><th>原因</th><th>狀態</th></tr></thead><tbody>
           {rows.map((d) => (
             <tr key={d.id}><td>第 {d.level} 層</td><td>{name(d.principal_id)}</td><td>{name(d.delegate_id)}</td>
