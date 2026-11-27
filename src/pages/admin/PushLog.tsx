@@ -8,7 +8,8 @@ interface Row { id: number; employee: string; request_no: string; kind: string; 
   accepted: number; failed: number; last_error: string | null; created_at: string; sent_at: string | null }
 interface Summary { subscriptions: { active: number; revoked: number }; outbox: Record<string, number>; enqueue_errors: number; recent: Row[] }
 
-const KIND: Record<string, string> = { L1: "第一層待審", L2: "第二層待審", ISSUE: "圖面待發行", RETURNED: "退回補件", RECEIPT: "待簽收", ABNORMAL: "整案異常" };
+const KIND: Record<string, string> = { L1: "第一層待審", L2: "第二層待審", ISSUE: "圖面待發行", RETURNED: "退回補件", RECEIPT: "待簽收", ABNORMAL: "整案異常",
+  R_REJECTED: "申請已駁回", R_FORCE_CLOSED: "案件已結案", R_CANCELLED: "申請已取消", R_RECEIPT_DONE: "已完成簽收" };
 const STATUS: Record<string, string> = { PENDING: "等待發送／重試", SENDING: "發送中", SENT: "推播服務已接受", FAILED: "失敗", SKIPPED: "略過" };
 const ERROR: Record<string, string> = { NO_SUBSCRIPTION: "收件人未啟用通知", NOT_ELIGIBLE: "發送前已不是此類待辦（已被他人處理、類別已改變或帳號停用）",
   DISPATCH_INTERRUPTED: "發送程式中斷超過 5 次" };

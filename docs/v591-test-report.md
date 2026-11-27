@@ -228,3 +228,15 @@
 - **原因**：正式資料庫 8 個 RPC 的 `authenticated` 執行權限在 migration 紀錄之外被移除（11/26 前即已存在，非 V5.9／V5.9.1 migration 造成）：`admin_set_roles`、`admin_set_manager_departments`、`admin_update_employee`、`admin_upsert_department`、`admin_create_delegation`、`admin_revoke_delegation`、`admin_release_claim`、`cancel_request`。日誌錯誤：`permission denied for function admin_set_roles`（42501）。
 - **修正**：migration 034 `v591_restore_rpc_grants` 恢復與 repo 定義相同的授權（只授予 `authenticated`，不授予 `anon`）；各函式內仍驗證 SYS_ADMIN／本人。
 - **驗證**：以 repo 全部 migration 建立的隔離資料庫為基準，比對正式環境 public schema 63 個函式的 `anon`／`authenticated` 執行權限：修正前 8 項不同、修正後 **0 項不同**。
+
+## 11. V5.9.2 案件結果通知（2026-11-27，開發分支）
+
+| 事件 | 收件人 | 推播文字 |
+|---|---|---|
+| 駁回 | 申請人、負責人 | 有 1 則「申請已駁回」通知 |
+| 管理員強制結案 | 申請人、負責人 | 有 1 則「案件已結案」通知 |
+| 申請人取消 | 原本待審的主管（含有效代理人） | 有 1 則「申請已取消」通知 |
+| 簽收完成 | 發行該案的圖管人員 | 有 1 則「已完成簽收」通知 |
+
+- migration 035：`app.case_notices`（通知中心，只能經 RPC 讀取本人資料）、`my_case_notices`、`read_case_notice`；佇列觸發器、角標計數、發送資格更新（結果通知不要求仍有待辦，但仍需帳號有效）。
+- 測試：V5.9.2 後端 29/29、V5.9.1 後端 82/82、發送端 24/24、瀏覽器 46/46、V5.8 回歸 9/9、V5.9 62／16、safeupdate 0。

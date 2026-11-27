@@ -7,7 +7,7 @@ import http from "node:http";
 import crypto from "node:crypto";
 import pg from "pg";
 import ece from "http_ece";
-import { dispatch, type Store, type Batch } from "../../../supabase/functions/push-dispatch/dispatch.ts";
+import { buildPayload, dispatch, type Store, type Batch } from "../../../supabase/functions/push-dispatch/dispatch.ts";
 import { b64urlEncode, checkVapidKeys, endpointAllowed, vapidSubjectValid } from "../../../supabase/functions/push-dispatch/webpush.ts";
 
 const pool = new pg.Pool({ host: "/var/lib/postgresql/sucoot-v59/run", port: 54330, user: "postgres", database: "postgres" });
@@ -181,6 +181,18 @@ try {
     && !endpointAllowed("https://fcm.googleapis.com:8443/x") && !endpointAllowed("https://user@fcm.googleapis.com/x")
     && !endpointAllowed("https://127.0.0.1/x"));
   void req4;
+
+  // ---------- V5.9.2 結果通知文字（不含案件編號）
+  const rid = "11111111-2222-3333-4444-555555555555";
+  const base = { employee_id: "x", outbox_ids: [1], request_id: rid, badge: 3, subscriptions: [] };
+  const p1 = buildPayload({ ...base, count: 1, kind: "R_REJECTED" });
+  const p2 = buildPayload({ ...base, count: 1, kind: "R_CANCELLED" });
+  const p3 = buildPayload({ ...base, count: 3, kind: "R_RECEIPT_DONE" });
+  const p4 = buildPayload({ ...base, count: 1, kind: "L1" });
+  check("N1 結果通知文字：只顯示類別摘要（駁回／取消），點擊開啟該案件",
+    p1.body === "有 1 則「申請已駁回」通知" && p2.body === "有 1 則「申請已取消」通知" && p1.url === `#/r/${rid}`, `${p1.body} / ${p2.body}`);
+  check("N2 多則合併：「有 N 則新的通知」，點擊開啟工作首頁", p3.body === "有 3 則新的通知" && p3.url === "#/my", p3.body);
+  check("N3 待辦通知文字不變", p4.body === "有 1 件「第一層待審」案件等待處理", p4.body);
 
   // ---------- 5. VAPID 設定檢查（Edge Function 取出佇列前先檢查；只回傳錯誤代碼）
   const other = crypto.generateKeyPairSync("ec", { namedCurve: "P-256" }).privateKey.export({ format: "jwk" });
