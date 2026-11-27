@@ -55,6 +55,11 @@ function sameSecret(a: string, b: string): boolean {
   return d === 0;
 }
 
+async function cronOkInVault(value: string): Promise<boolean> {
+  const { data, error } = await admin.rpc("svc_push_cron_ok", { p_secret: value });
+  return !error && data === true;
+}
+
 // 員工呼叫：以呼叫者 JWT 呼叫 me()，確認為啟用中且工作階段有效的員工
 async function isEmployee(req: Request): Promise<boolean> {
   const authorization = req.headers.get("Authorization") ?? "";
@@ -75,7 +80,9 @@ Deno.serve(async (req) => {
   }
   if (req.method !== "POST") return json(405, { error: "METHOD_NOT_ALLOWED" });
 
-  const cron = sameSecret(req.headers.get("x-push-cron-secret") ?? "", CRON_SECRET);
+  // 排程呼叫：比對 Edge Function Secret（PUSH_CRON_SECRET）或 Vault 中的 sucoot_push_cron_secret（資料庫內比對，不取出值）
+  const cronHeader = req.headers.get("x-push-cron-secret") ?? "";
+  const cron = sameSecret(cronHeader, CRON_SECRET) || (cronHeader.length >= 32 && await cronOkInVault(cronHeader));
   if (!cron && !(await isEmployee(req))) return json(401, { error: "UNAUTHORIZED" });
   // 未設定、金鑰不配對或 sub 格式錯誤時不取出佇列（避免整批失敗），由管理員修正 Secrets
   const bad = await vapidConfigError();

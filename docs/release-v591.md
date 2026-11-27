@@ -80,11 +80,14 @@ node scripts/vapid-keys.mjs verify ~/sucoot-push-keys "mailto:<公司正式 IT �
 4. **設定 Secrets**（第 2 節），再部署 Edge Function `push-dispatch`，**關閉平台 JWT 驗證**（CLI：`supabase functions deploy push-dispatch --no-verify-jwt`；或 Dashboard 函式設定關閉「Enforce JWT verification」）。
    - 理由：排程呼叫沒有使用者 JWT；函式自行驗證呼叫者（員工 JWT 經 `me()` 確認有效員工，或比對排程密鑰；排程密鑰未設定時一律拒絕）。GET 只回傳公開的 VAPID 公鑰。這也是 Supabase 文件對自行驗證之函式的建議做法。
    - 部署後由已登入員工在 App 開啟「通知與角標」：若顯示「推播服務尚未設定」，代表 Secrets 缺漏或金鑰不配對（函式只回傳錯誤代碼 `PUSH_NOT_CONFIGURED`／`VAPID_KEY_MISMATCH`／`VAPID_SUBJECT_INVALID`，可在函式日誌查看）。
-5. **（建議）排程重試**：啟用 `pg_net`、`pg_cron`；`PUSH_CRON_SECRET` 依 2.4 以 Vault UI 存入後，於 SQL Editor 執行（**此 SQL 不含任何密鑰**）：
+5. **（建議）排程重試**（migration 033＋下列 SQL；**全程不經手任何密鑰**）：
 
    ```sql
    create extension if not exists pg_net;
    create extension if not exists pg_cron;
+   -- 排程密鑰在資料庫內隨機產生、直接存入 Vault，不輸出
+   select vault.create_secret(encode(extensions.gen_random_bytes(32), 'hex'), 'sucoot_push_cron_secret',
+                              'V5.9.1 推播排程密鑰（資料庫內產生）') is not null as created;
    select cron.schedule('sucoot-push-dispatch', '* * * * *', $job$
      select net.http_post(
        url := 'https://qifjiaxskortyennnpsh.supabase.co/functions/v1/push-dispatch',
@@ -95,10 +98,10 @@ node scripts/vapid-keys.mjs verify ~/sucoot-push-keys "mailto:<公司正式 IT �
    $job$);
    ```
 
-   - 只有佇列中有到期項目時才呼叫；函式比對排程密鑰後處理佇列。
-   - 重試流程：推播服務 5xx／逾時／連線失敗 → 1、4、16、64 分鐘後重試，**共 5 次**後 FAILED；404／410 → 停用該裝置訂閱；發送程式中斷（2 分鐘鎖逾時未回報）→ 自動重新取出，達 5 次即 FAILED；金鑰設定錯誤 → 函式回 503、不取出佇列。
-   - 驗證：`select * from cron.job_run_details order by start_time desc limit 5;`、`select status_code from net._http_response order by created desc limit 5;`（200＝已處理；401＝排程密鑰不一致；503＝推播設定錯誤）。
-   - 未設定排程時，推播仍會在員工完成案件操作後由前端觸發發送；但暫時失敗的重試要等到下一次有人操作。
+   - `push-dispatch` 以 `svc_push_cron_ok`（僅 service_role 可執行）在資料庫內比對 Vault 的值；Edge Function Secret `PUSH_CRON_SECRET` 仍可用於手動呼叫。
+   - 只有佇列中有到期項目時才呼叫；重試流程：5xx／逾時／連線失敗 → 1、4、16、64 分鐘後重試，共 5 次後 FAILED；404／410 → 停用該裝置訂閱。
+   - 驗證：`select * from cron.job_run_details order by start_time desc limit 5;`、`select status_code from net._http_response order by created desc limit 5;`（200＝已處理；401＝密鑰不一致）。
+   - 移除：`select cron.unschedule('sucoot-push-dispatch');`，並於 Vault 刪除 `sucoot_push_cron_secret`。
 
 6. **合併前端**（PR → `main` → GitHub Pages 自動部署）。
 7. **實機驗收**（第 5 節）。
