@@ -6,6 +6,8 @@ import http from "node:http";
 import crypto from "node:crypto";
 import pg from "pg";
 
+// 與 PostgREST 相同：date 欄位以 YYYY-MM-DD 字串輸出（不轉成時間戳）
+pg.types.setTypeParser(1082, (v) => v);
 const pool = new pg.Pool({ host: "/var/lib/postgresql/sucoot-v59/run", port: 54330, user: "postgres", database: "postgres", max: 20 });
 const SECRET = crypto.randomBytes(32);
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
@@ -120,6 +122,11 @@ async function handle(req, res) {
     }
     const sql = `select ${sel} from public.${ident(t[1])}${where.length ? " where " + where.join(" and ") : ""}${order}${limit}${offset}`;
     const rows = await asUser(claims, async (c) => (await c.query(sql, vals)).rows);
+    // 與 PostgREST 相同：.single()／.maybeSingle() 以 Accept: vnd.pgrst.object 要求單一物件
+    if ((req.headers.accept || "").includes("vnd.pgrst.object")) {
+      if (rows.length !== 1) return send(res, 406, { code: "PGRST116", message: "JSON object requested, multiple (or no) rows returned", details: `The result contains ${rows.length} rows` });
+      return send(res, 200, rows[0]);
+    }
     return send(res, 200, req.method === "HEAD" ? undefined : rows, { "Content-Range": `0-${Math.max(rows.length - 1, 0)}/${rows.length}` });
   }
   if (url.pathname.startsWith("/rest/v1/")) return send(res, 200, [], { "Content-Range": "*/0" });
