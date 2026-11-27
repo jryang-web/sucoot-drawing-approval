@@ -1,5 +1,6 @@
 import markUrl from "../assets/brand/sucoot-mark.png";
 import wordmarkUrl from "../assets/brand/sucoot-wordmark.png";
+import { RELEASE_LABEL } from "../config";
 import "./AppHeader.css";
 
 /**
@@ -16,7 +17,7 @@ export default function AppHeader() {
         </span>
         <span className="app-header__divider" aria-hidden="true" />
         <span className="app-header__system">
-          圖面申請與審核<small>V5.9.2</small>
+          圖面申請與審核<small>{RELEASE_LABEL}</small>
         </span>
       </div>
     </header>

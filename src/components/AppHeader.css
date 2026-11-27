@@ -30,11 +30,11 @@
   .app-header__system { font-size: 14px; }
 }
 
-/* 窄螢幕手機：系統名稱與版本併成一行 */
+/* 窄螢幕手機：縮小 LOGO 與字級，仍顯示版本與測試版標示 */
 @media (max-width: 380px) {
   .app-header__inner { gap: 8px; }
   .app-header__mark { height: 30px; }
   .app-header__wordmark { height: 13px; }
   .app-header__system { font-size: 13px; }
-  .app-header__system small { display: none; }
+  .app-header__system small { font-size: 11px; }
 }
