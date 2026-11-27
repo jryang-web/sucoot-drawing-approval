@@ -27,17 +27,23 @@ export default function DrawingReport() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [range, setRange] = useState("");
   const [stage, setStage] = useState<Status | "">("");
+  const [dept, setDept] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
   async function search(e: FormEvent) {
     e.preventDefault(); setBusy(true); setError(null);
-    try { setRows(await rpc<Row[]>("drawing_report", { p_from: from, p_to: to })); setRange(`${from} ～ ${to}`); }
+    try {
+      const data = await rpc<Row[]>("drawing_report", { p_from: from, p_to: to });
+      setRows(data); setRange(`${from} ～ ${to}`);
+      if (dept && !data.some((r) => r.department === dept)) setDept("");   // 新區間沒有該部門時回到全部
+    }
     catch (err) { setError(err); setRows(null); } finally { setBusy(false); }
   }
-  const shown = rows?.filter((r) => !stage || r.status === stage) ?? null;
+  const departments = [...new Set((rows ?? []).map((r) => r.department))].sort((a, b) => a.localeCompare(b, "zh-Hant"));
+  const shown = rows?.filter((r) => (!stage || r.status === stage) && (!dept || r.department === dept)) ?? null;
   const stageName = stage ? STATUS_LABEL[stage] : "全部";
-  const excel = () => shown && downloadFile(`申請紀錄報表_${from}_${to}${stage ? "_" + stageName : ""}.xlsx`, buildXlsx("申請紀錄", [HEAD, ...shown.map(cells)]),
+  const excel = () => shown && downloadFile(`申請紀錄報表_${from}_${to}${dept ? "_" + dept : ""}${stage ? "_" + stageName : ""}.xlsx`, buildXlsx("申請紀錄", [HEAD, ...shown.map(cells)]),
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   return <section className="r8-card report">
@@ -45,6 +51,8 @@ export default function DrawingReport() {
     <form className="r8-toolbar no-print" onSubmit={search}>
       <label className="r8-row">送出日期 <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} required />
         ～ <input type="date" value={to} onChange={(e) => setTo(e.target.value)} required /></label>
+      <label className="r8-row">申請部門 <select value={dept} onChange={(e) => setDept(e.target.value)} aria-label="依申請部門篩選">
+        <option value="">全部</option>{departments.map((d) => <option key={d} value={d}>{d}</option>)}</select></label>
       <label className="r8-row">階段 <select value={stage} onChange={(e) => setStage(e.target.value as Status | "")} aria-label="依階段篩選">
         <option value="">全部</option>{STAGES.map((st) => <option key={st} value={st}>{STATUS_LABEL[st]}</option>)}</select></label>
       <div className="r8-actions" style={{ marginTop: 0 }}>
@@ -55,7 +63,7 @@ export default function DrawingReport() {
     </form>
     <ErrorBox error={error} />
     {shown && <>
-      <p className="r8-muted">送出日期 {range}｜階段：{stageName}｜共 {new Set(shown.map((r) => r.request_id)).size} 件、{shown.length} 筆圖面｜列印時間 {fmt(new Date().toISOString())}</p>
+      <p className="r8-muted">送出日期 {range}｜申請部門：{dept || "全部"}｜階段：{stageName}｜共 {new Set(shown.map((r) => r.request_id)).size} 件、{shown.length} 筆圖面｜列印時間 {fmt(new Date().toISOString())}</p>
       {shown.length === 0 ? <p>此條件沒有申請紀錄。</p>
         : <div className="tablewrap"><table className="report-table">
           <thead><tr>{HEAD.map((h) => <th key={h}>{h}</th>)}</tr></thead>

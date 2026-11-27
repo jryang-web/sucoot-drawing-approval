@@ -22,7 +22,7 @@
 .nav-count{display:inline-block;min-width:22px;margin-left:8px;padding:1px 7px;border-radius:11px;background:#d9363e;color:#fff;font-size:12px;font-weight:700;line-height:18px;text-align:center;vertical-align:1px}
 
 /* 申請紀錄報表 */
-.report input[type=date],.report select{width:auto;max-width:100%;border:1px solid #c1d1dc;border-radius:8px;min-height:44px;padding:6px 8px;font:inherit}.report .r8-row{flex-wrap:wrap;gap:8px}
+.report input[type=date],.report select{width:auto;max-width:100%;border:1px solid #c1d1dc;border-radius:8px;min-height:44px;padding:6px 8px;font:inherit}.report .r8-row{flex-wrap:wrap;gap:8px}.report form.r8-toolbar{justify-content:flex-start;gap:12px 20px}
 .report-table{font-size:13px}.report-table th{white-space:nowrap;background:#f3f6fa}.report-table td{word-break:keep-all}.report-table td:nth-child(-n+2),.report-table td:nth-child(14),.report-table td:nth-child(16){white-space:nowrap}
 @media print{
   @page{size:A4 landscape;margin:10mm}
