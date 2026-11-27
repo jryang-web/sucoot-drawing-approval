@@ -232,8 +232,8 @@ async function hideShow(page) {
     await page.goto(B + "/#/password");
     await page.waitForFunction(() => document.querySelector('[aria-label="背景通知"]')?.textContent.includes("尚未開放"), null, { timeout: 10000 }).catch(() => {});
     const txt = await page.textContent('[aria-label="背景通知"]');
-    check("C11 伺服器尚未設定推播：設定頁顯示「背景通知尚未開放」、不顯示啟用按鈕，首頁計數照常",
-      txt.includes("背景通知尚未開放") && (await page.locator('button:has-text("啟用通知")').count()) === 0 && home.includes("最後同步") && errors.length === 0, txt.slice(0, 160));
+    check("C11 伺服器尚未設定推播：設定頁顯示「背景通知尚未開放」、啟用按鈕停用，首頁計數照常",
+      txt.includes("背景通知尚未開放") && (await page.locator('button:has-text("啟用通知")').isDisabled()) && home.includes("最後同步") && errors.length === 0, txt.slice(0, 160));
     await page.screenshot({ path: `${out}/08-推播尚未開放.png` });
     await page.click("button.logout"); await page.waitForSelector("#no");
     check("C12 登入頁只顯示「忘記密碼請聯絡系統管理員」（AGENTS.md 第 1 節）", (await page.textContent("form, .loggedout, main")).includes("忘記密碼請聯絡系統管理員")
@@ -367,7 +367,7 @@ async function hideShow(page) {
     await page.goto(B + "/#/password"); await page.waitForSelector('[aria-label="背景通知"]');
     const txt = badgeTxt + (await page.textContent('[aria-label="背景通知"]'));
     check("T22 WebKit iPhone（設定檔為 iOS 15）：說明需 iOS 16.4 以上、並提示「標記」設定", txt.includes("iOS 16.4 以上才支援") && txt.includes("標記"), txt.slice(0, 200));
-    check("T22 WebKit iPhone：未加入主畫面時不顯示啟用按鈕、不要求權限", await page.locator('button:has-text("啟用通知")').count() === 0);
+    check("T22 WebKit iPhone：未加入主畫面時啟用按鈕顯示但停用、不要求權限", await page.locator('button:has-text("啟用通知")').isDisabled());
     await page.screenshot({ path: `${out}/05-iPhone模擬-通知與角標.png`, fullPage: false });
     const sw = await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
     check("T22 WebKit iPhone：無橫向捲動", sw);
@@ -380,7 +380,7 @@ async function hideShow(page) {
     await login(p17, "TEST001");
     await p17.goto(B + "/#/password"); await p17.waitForSelector('[aria-label="背景通知"]');
     const t17 = await p17.textContent('[aria-label="背景通知"]');
-    check("T22 WebKit iPhone（iOS 17、未加入主畫面）：說明須先「加入主畫面」再從主畫面開啟", t17.includes("加入主畫面") && !(await p17.locator('button:has-text("啟用通知")').count()), t17.slice(0, 200));
+    check("T22 WebKit iPhone（iOS 17、未加入主畫面）：說明須先「加入主畫面」再從主畫面開啟", t17.includes("加入主畫面") && (await p17.locator('button:has-text("啟用通知")').isDisabled()), t17.slice(0, 200));
     await p17.screenshot({ path: `${out}/06-iPhone模擬-iOS17-需加入主畫面.png` });
     await ctx17.close(); await wb.close();
   }

@@ -69,17 +69,15 @@ export function PushSettings() {
 
   return <section className="r8-card" aria-label="背景通知">
     <h2>背景通知</h2>
-    {!support.supported ? <p className="r8-muted">{BLOCKER[support.blocker!]}</p>
+    {enabled ? <p>此裝置已啟用通知：有新的待辦時會收到通知並更新角標。</p>
+      : !support.supported ? <p className="r8-muted">{BLOCKER[support.blocker!]}</p>
       : support.permission === "denied" ? <p className="r8-muted">此裝置已拒絕 SUCOOT 通知；請到裝置或瀏覽器設定中允許通知。</p>
-      : enabled ? <>
-          <p>此裝置已啟用通知：有新的待辦時會收到通知並更新角標。</p>
-          <button className="r8-btn" disabled={busy} onClick={disable}>停用此裝置通知</button>
-        </>
       : configured === false ? <p className="r8-muted">背景通知尚未開放，系統管理員完成設定後即可在此啟用。App 內的待辦與未讀數字不受影響。</p>
-      : <>
-          <p className="r8-muted">啟用後，App 未開啟時也會在有新待辦時收到通知（實際送達時間依手機網路與省電設定而定）。</p>
-          <button className="r8-btn" disabled={busy || enabled === null || configured === null} onClick={enable}>啟用通知</button>
-        </>}
+      : <p className="r8-muted">啟用後，App 未開啟時也會在有新待辦時收到通知（實際送達時間依手機網路與省電設定而定）。</p>}
+    {/* 開關一律顯示；此裝置無法使用時停用並以上方文字說明原因 */}
+    {enabled ? <button className="r8-btn" disabled={busy} onClick={disable}>停用此裝置通知</button>
+      : <button className="r8-btn r8-primary" onClick={enable}
+          disabled={busy || !support.supported || support.permission === "denied" || configured !== true || enabled === null}>啟用通知</button>}
     {isIOS && <p className="r8-muted">iPhone：需 iOS 16.4 以上、從主畫面開啟 SUCOOT、允許通知，並在「設定 &gt; 通知 &gt; SUCOOT」開啟「標記」。</p>}
     {message && <p role="alert">{message}</p>}
   </section>;
