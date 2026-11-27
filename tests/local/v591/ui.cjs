@@ -234,7 +234,7 @@ async function hideShow(page) {
       txt.includes("背景通知尚未開放") && (await page.locator('button:has-text("啟用通知")').count()) === 0 && txt.includes("最後同步") && errors.length === 0, txt.slice(0, 160));
     await page.screenshot({ path: `${out}/08-推播尚未開放.png` });
     await page.click("button.logout"); await page.waitForSelector("#no");
-    check("C12 登入頁只顯示「忘記密碼請聯絡系統管理員」（AGENTS.md 1.3）", (await page.textContent("form, .loggedout, main")).includes("忘記密碼請聯絡系統管理員")
+    check("C12 登入頁只顯示「忘記密碼請聯絡系統管理員」（AGENTS.md 第 1 節）", (await page.textContent("form, .loggedout, main")).includes("忘記密碼請聯絡系統管理員")
       && !(await page.textContent("body")).includes("帳號由系統管理員建立"));
     await ctx.close();
   }

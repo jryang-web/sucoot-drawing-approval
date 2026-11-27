@@ -25,7 +25,7 @@ npm run build -- --mode pages # 正式網站建置（讀取 .env.local，並檢�
 
 ## 工作原則摘要（詳見 AGENTS.md）
 
-- 修改程式、推送 GitHub、部署前須取得使用者授權；Supabase 操作已有長期授權（範圍見 AGENTS.md 第 0.2 條）；先在分支與隔離環境測試。
+- 可直接修改程式、推送工作分支、開 PR 與操作 Supabase；合併 `main`（會部署正式網站）、刪改正式資料、帳號與權限異動須先取得同意（AGENTS.md 第 0 節）。
 - 正式資料庫變更一律以 `supabase/migrations/` 記錄；所有 `UPDATE`／`DELETE` 須有 `WHERE`（正式啟用 safeupdate）。
 - 不得產生、讀取或輸出正式金鑰與 Secrets；不得在程式、日誌或聊天中出現密碼或金鑰。
 - 規格與發布紀錄：`docs/release-*.md`、`docs/*-test-report.md`。
