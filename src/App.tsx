@@ -11,6 +11,7 @@ import R8Form from "./pages/R8Form";
 import "./r8.css";
 
 import RequestDetail from "./pages/request/RequestDetail";
+import CaseSearch from "./pages/CaseSearch";
 import Queue from "./pages/Queue";
 import Departments from "./pages/admin/Departments";
 import Employees from "./pages/admin/Employees";
@@ -24,6 +25,7 @@ import Footer from "./components/Footer";
 import PwaBanner from "./components/PwaBanner";
 import AppHeader from "./components/AppHeader";
 import BadgeSync from "./components/BadgeSync";
+import { PushSettings } from "./components/NotificationSettings";
 import { useBadge } from "./lib/badge";
 
 
@@ -51,11 +53,11 @@ export default function App() {
         {tab("/new", "新增申請")}
         {tab(pathname.startsWith("/r/") ? pathname : "/detail", "案件明細與操作")}
         {has("SYS_ADMIN") && tab("/admin", "系統管理")}
-        {tab("/password", "修改密碼")}
+        {tab("/password", "設定")}
       </div></nav>
       <main className="content"><OperationResults key={session.user.id} user={session.user.id}/><div className="r8-identity">{me.employee_no}｜{me.name}｜{me.department_name}</div><div className="frame-shell"><div className="r8-screen">
         <Routes>
-          <Route path="/detail" element={<div className="r8-card">請從工作首頁選擇一筆案件。</div>}/>
+          <Route path="/detail" element={<CaseSearch />}/>
           <Route path="/admin" element={guard("SYS_ADMIN", <R8Admin />)}/>
           <Route path="/my" element={<R8Home />} />
           <Route path="/new" element={<R8Form />} />
@@ -72,7 +74,7 @@ export default function App() {
           <Route path="/admin/audit" element={guard("SYS_ADMIN", <Audit />)} />
           <Route path="/admin/products" element={guard("SYS_ADMIN", <ProductMaster />)} />
           <Route path="/admin/push" element={guard("SYS_ADMIN", <PushLog />)} />
-          <Route path="/password" element={<ChangePassword />} />
+          <Route path="/password" element={<ChangePassword before={<PushSettings key={me.id} />} />} />
           <Route path="*" element={<Navigate to="/my" replace />} />
         </Routes>
       </div></div><div className="bottom"><Footer /><button className="logout" onClick={signOut}>登出</button></div></main></div>

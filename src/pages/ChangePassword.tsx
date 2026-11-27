@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { accountAction } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { ErrorBox, useAction } from "../components/ui";
 
-export default function ChangePassword({ forced }: { forced?: boolean }) {
+export default function ChangePassword({ forced, before }: { forced?: boolean; before?: ReactNode }) {
   const { signOut } = useAuth();
   const [cur, setCur] = useState("");
   const [pw, setPw] = useState("");
@@ -23,6 +23,7 @@ export default function ChangePassword({ forced }: { forced?: boolean }) {
 
   return (
     <main style={{ maxWidth: 460 }}>
+      {before}
       <div className="card">
         <h1>{forced ? "首次登入：請修改密碼" : "修改密碼"}</h1>
         {forced && <p className="muted">管理者設定的初始密碼必須修改後才能使用系統。</p>}
