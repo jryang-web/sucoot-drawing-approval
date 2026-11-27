@@ -191,6 +191,27 @@ async function hideShow(page) {
     await ctx.close();
   }
 
+  // ================= 推播尚未設定（伺服器未設定 Secrets）：不顯示會失敗的「啟用通知」按鈕
+  // 本機模式 API 與網站同網域，需停用 Service Worker 才能攔截請求（正式環境 API 為不同網域，不經 Service Worker）
+  {
+    const ctx = await br.newContext({ ...devices["Pixel 7"], serviceWorkers: "block" });
+    await ctx.grantPermissions(["notifications"], { origin: B });
+    const page = await ctx.newPage();
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.route("**/functions/v1/push-dispatch", (r) => r.request().method() === "GET"
+      ? r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ publicKey: null }) }) : r.continue());
+    await login(page, "TEST001");
+    await page.waitForFunction(() => document.querySelector('[aria-label="通知與角標"]')?.textContent.includes("尚未開放"), null, { timeout: 10000 }).catch(() => {});
+    const txt = await page.textContent('[aria-label="通知與角標"]');
+    check("C11 伺服器尚未設定推播：顯示「背景通知尚未開放」、不顯示啟用按鈕，App 內計數照常",
+      txt.includes("背景通知尚未開放") && (await page.locator('button:has-text("啟用通知")').count()) === 0 && txt.includes("最後同步") && errors.length === 0, txt.slice(0, 160));
+    await page.screenshot({ path: `${out}/08-推播尚未開放.png` });
+    await page.click("button.logout"); await page.waitForSelector("#no");
+    check("C12 登入頁只顯示「忘記密碼請聯絡系統管理員」（AGENTS.md 1.3）", (await page.textContent("form, .loggedout, main")).includes("忘記密碼請聯絡系統管理員")
+      && !(await page.textContent("body")).includes("帳號由系統管理員建立"));
+    await ctx.close();
+  }
+
   // ================= T20：Service Worker 推播與通知點擊（Chromium 手機模擬）
   {
     const ctx = await br.newContext({ ...devices["Pixel 7"] });

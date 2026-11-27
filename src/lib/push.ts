@@ -59,6 +59,11 @@ async function save(sub: PushSubscription) {
   await rpc("push_register", { p_endpoint: sub.endpoint, p_p256dh: json.keys?.p256dh, p_auth: json.keys?.auth, p_platform: platform() });
 }
 
+/** 伺服器端是否已完成推播設定（Secrets）；未設定時前端不顯示「啟用通知」按鈕 */
+export async function pushConfigured(): Promise<boolean> {
+  try { await publicKey(); return true; } catch { return false; }
+}
+
 /** 使用者按「啟用通知」：要求權限 → 建立（或沿用）瀏覽器訂閱 → 登記到目前帳號 */
 export async function enablePush(): Promise<"enabled" | "denied" | "dismissed"> {
   const support = pushSupport();

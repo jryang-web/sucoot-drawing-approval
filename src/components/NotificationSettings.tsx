@@ -1,7 +1,7 @@
 // V5.9.1：工作首頁「通知與角標」卡片：App 內計數、同步狀態、啟用／停用背景通知
 import { useEffect, useState } from "react";
 import { useBadge } from "../lib/badge";
-import { disablePushHere, enablePush, pushEnabledHere, pushSupport, type PushBlocker } from "../lib/push";
+import { disablePushHere, enablePush, pushConfigured, pushEnabledHere, pushSupport, type PushBlocker } from "../lib/push";
 import { isIOS } from "../lib/pwa";
 import { fmt } from "../lib/labels";
 
@@ -18,14 +18,16 @@ export function NotificationSettings() {
   const badge = useBadge();
   const [support] = useState(pushSupport);
   const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [configured, setConfigured] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     pushEnabledHere().then((v) => { if (active) setEnabled(v); }).catch(() => { if (active) setEnabled(false); });
+    if (support.supported) pushConfigured().then((v) => { if (active) setConfigured(v); });
     return () => { active = false; };
-  }, []);
+  }, [support.supported]);
 
   async function enable() {
     setBusy(true); setMessage(null);
@@ -67,9 +69,10 @@ export function NotificationSettings() {
           <p>此裝置已啟用通知：有新的待辦時會收到通知並更新角標。</p>
           <button className="r8-btn" disabled={busy} onClick={disable}>停用此裝置通知</button>
         </>
+      : configured === false ? <p className="r8-muted">背景通知尚未開放，系統管理員完成設定後即可在此啟用。App 內的待辦與未讀數字不受影響。</p>
       : <>
           <p className="r8-muted">啟用後，App 未開啟時也會在有新待辦時收到通知（實際送達時間依手機網路與省電設定而定）。</p>
-          <button className="r8-btn" disabled={busy || enabled === null} onClick={enable}>啟用通知</button>
+          <button className="r8-btn" disabled={busy || enabled === null || configured === null} onClick={enable}>啟用通知</button>
         </>}
     {isIOS && <p className="r8-muted">iPhone：需 iOS 16.4 以上、從主畫面開啟 SUCOOT、允許通知，並在「設定 &gt; 通知 &gt; SUCOOT」開啟「標記」。</p>}
     {message && <p role="alert">{message}</p>}
