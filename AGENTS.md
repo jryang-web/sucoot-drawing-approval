@@ -68,4 +68,16 @@
 - 正式資料庫的結構、函式與**權限**變更一律寫成 `supabase/migrations/` 檔案，不得只在 SQL Editor 修改。
 - 正式環境啟用 `safeupdate`：所有 `UPDATE`／`DELETE` 必須有 `WHERE`（檢查：`tests/local/v59_safeupdate_check.sql`）。
 - SECURITY DEFINER 函式須設 `search_path = ''`、在函式內驗證身分、只授權必要角色。
-- `VAPID_PRIVATE_KEY` 等正式金鑰由公司授權維護人員自行產生與設定（`scripts/vapid-keys.mjs`）；代理不得產生、讀取、輸出或索取，也不得寫入程式碼、migration 或日誌。排程密鑰只存於 Supabase Vault。
+- `VAPID_PRIVATE_KEY` 等正式金鑰由公司授權維護人員自行產生與設定（`scripts/vapid-keys.mjs`）；代理不得產生、讀取、輸出或索取，也不得寫入程式碼、migration 或日誌；只能回報 Secret 名稱、是否存在與不含秘密值的驗證結果。排程密鑰只存於 Supabase Vault。
+
+## 6. 回饋修正作業
+
+系統已大致完成，後續以使用者回饋修正為主。
+
+- 只改回饋涉及的部分：不做無關重構、不加未要求的功能，保留既有 UI 與流程。
+- 測試只做受影響範圍，不需重跑完整回歸測試，也不需更新 `docs/` 的測試報告與發布紀錄（使用者要求時才做）：
+  - 前端文字、樣式、畫面調整：`npm run check` 與建置成功即可。
+  - 涉及資料庫、權限或交易：在隔離環境測試受影響的流程；正式 migration 後確認該功能可正常操作。
+- 正式 Supabase 專案為 `qifjiaxskortyennnpsh`，執行前確認沒有連錯專案。
+- 推播、角標等需要手機的項目無法在開發環境實機驗證，標「待實機確認」，由使用者回報結果。
+- 回報簡短：改了什麼、測了什麼、是否已上線、需要使用者做什麼；未測的照實寫，不得宣稱未執行的測試已通過。
