@@ -1,0 +1,2 @@
+# Windows 批次檔必須使用 CRLF 換行，否則部分 goto／標籤會失效
+*.cmd text eol=crlf

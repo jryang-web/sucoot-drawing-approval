@@ -30,11 +30,13 @@ const readBody = (req) => new Promise((resolve) => {
   req.on("end", () => { const d = Buffer.concat(chunks).toString("utf8"); resolve(d ? JSON.parse(d) : {}); });
 });
 
+let pushKicks = 0, pushFail = false;
 const fnCache = new Map();
 async function overloads(name) {
   if (!fnCache.has(name)) {
     const { rows } = await pool.query(
-      `select p.proargnames as names, array(select format_type(t, null) from unnest(p.proargtypes) t) as types, p.proretset as is_set
+      `select p.proargnames as names, array(select format_type(t, null) from unnest(p.proargtypes) t) as types, p.proretset as is_set,
+              (select t.typtype from pg_type t where t.oid = p.prorettype) as rettype
          from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = $1`, [name]);
     fnCache.set(name, rows);
   }
@@ -91,8 +93,11 @@ async function handle(req, res) {
     if (!fn) return send(res, 404, { code: "PGRST202", message: `function ${m[1]} not found` });
     const args = keys.map((k, i) => `${k} => $${i + 1}::${fn.types[fn.names.indexOf(k)]}`).join(", ");
     const vals = keys.map((k) => (/json/.test(fn.types[fn.names.indexOf(k)]) ? JSON.stringify(body[k]) : body[k]));
+    // 與 PostgREST 相同：回傳 setof 純量（例如 setof uuid）時輸出純量陣列，setof 表格型別時輸出物件陣列
     const out = await asUser(claims, async (c) => (fn.is_set
-      ? (await c.query(`select * from public.${m[1]}(${args})`, vals)).rows
+      ? (fn.rettype === "b"
+          ? (await c.query(`select x as v from public.${m[1]}(${args}) x`, vals)).rows.map((r) => r.v)
+          : (await c.query(`select * from public.${m[1]}(${args})`, vals)).rows)
       : (await c.query(`select to_jsonb(public.${m[1]}(${args})) as r`, vals)).rows[0].r));
     return send(res, 200, out);
   }
@@ -118,6 +123,19 @@ async function handle(req, res) {
     return send(res, 200, req.method === "HEAD" ? undefined : rows, { "Content-Range": `0-${Math.max(rows.length - 1, 0)}/${rows.length}` });
   }
   if (url.pathname.startsWith("/rest/v1/")) return send(res, 200, [], { "Content-Range": "*/0" });
+  // V5.9.1：push-dispatch Edge Function 測試替身（GET 公鑰；POST 需有效登入，記錄觸發次數；可切換為失敗模式）
+  if (url.pathname === "/functions/v1/push-dispatch") {
+    if (req.method === "OPTIONS") return send(res, 204);
+    if (req.method === "GET") return send(res, 200, { publicKey: process.env.TEST_VAPID_PUBLIC_KEY || null });
+    if (!claims) return send(res, 401, { error: "UNAUTHORIZED" });
+    pushKicks++;
+    return pushFail ? send(res, 500, { error: "DISPATCH_FAILED" }) : send(res, 200, { batches: 0, events: 0, accepted: 0, failed: 0, no_subscription: 0 });
+  }
+  if (url.pathname === "/__test/push") {   // 測試控制：查詢觸發次數、切換失敗模式
+    if (url.searchParams.has("fail")) pushFail = url.searchParams.get("fail") === "1";
+    if (url.searchParams.has("reset")) pushKicks = 0;
+    return send(res, 200, { kicks: pushKicks, fail: pushFail });
+  }
   return send(res, 404, { message: "not found" });
 }
 

@@ -18,15 +18,19 @@ import Delegations from "./pages/admin/Delegations";
 import Audit from "./pages/admin/Audit";
 import Alerts from "./pages/admin/Alerts";
 import ProductMaster from "./pages/admin/ProductMaster";
+import PushLog from "./pages/admin/PushLog";
 import VersionInfo from "./pages/VersionInfo";
 import Footer from "./components/Footer";
 import PwaBanner from "./components/PwaBanner";
 import AppHeader from "./components/AppHeader";
+import BadgeSync from "./components/BadgeSync";
+import { useBadge } from "./lib/badge";
 
 
 export default function App() {
   const { session, me, loading, error, signOut, has } = useAuth();
   const { pathname } = useLocation();
+  const badge = useBadge();
   // 版本說明不需登入即可查看
   if (pathname === "/version") return <><PwaBanner /><AppHeader /><VersionInfo /><Footer /></>;
   if (loading) return <main><p className="muted">載入中…</p></main>;
@@ -35,14 +39,15 @@ export default function App() {
 
   // 依角色保護路由：沒有權限的網址一律導回「我的案件」（後端 RPC 另有權限檢查）
   const guard = (role: Role, el: ReactElement) => (has(role) ? el : <Navigate to="/my" replace />);
-  const tab = (to: string, label: string) => <NavLink to={to} className={({ isActive }) => (isActive ? "tab active" : "tab")}>{label}</NavLink>;
+  const tab = (to: string, label: string, count?: number | null) => <NavLink to={to} className={({ isActive }) => (isActive ? "tab active" : "tab")}>{label}{!!count && <span className="nav-count" aria-label={`待辦與未讀共 ${count} 件`}>{count > 99 ? "99+" : count}</span>}</NavLink>;
   return (
     <>
       <PwaBanner />
+      <BadgeSync key={me.id} employeeId={me.id} />
       <AppHeader />
       <div className="root"><nav className="nav" aria-label="SUCOOT 主要功能">
         <div className="nav-tabs">
-        {tab("/my", "工作首頁")}
+        {tab("/my", "工作首頁", badge.owner === me.id ? badge.total : null)}
         {tab("/new", "新增申請")}
         {tab(pathname.startsWith("/r/") ? pathname : "/detail", "案件明細與操作")}
         {has("SYS_ADMIN") && tab("/admin", "系統管理")}
@@ -66,6 +71,7 @@ export default function App() {
           <Route path="/admin/delegations" element={guard("SYS_ADMIN", <Delegations />)} />
           <Route path="/admin/audit" element={guard("SYS_ADMIN", <Audit />)} />
           <Route path="/admin/products" element={guard("SYS_ADMIN", <ProductMaster />)} />
+          <Route path="/admin/push" element={guard("SYS_ADMIN", <PushLog />)} />
           <Route path="/password" element={<ChangePassword />} />
           <Route path="*" element={<Navigate to="/my" replace />} />
         </Routes>

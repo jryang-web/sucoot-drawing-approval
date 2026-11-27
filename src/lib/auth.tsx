@@ -3,6 +3,8 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import { rpc, ApiError } from "./api";
 import type { Me, Role } from "./types";
+import { stopBadge } from "./badge";
+import { unregisterPushOnLogout } from "./push";
 
 interface AuthState {
   session: Session | null; me: Me | null; loading: boolean; error: string | null;
@@ -25,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 帳號停用或沒有員工資料：強制登出
       setMe(null);
       setError(e instanceof ApiError ? e.message : String(e));
+      void stopBadge();
       await supabase.auth.signOut();
     } finally {
       setLoading(false);
@@ -35,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); loadMe(data.session); });
     const { data: sub } = supabase.auth.onAuthStateChange((evt, s) => {
       setSession(s);
+      if (evt === "SIGNED_OUT") void stopBadge();   // V5.9.1：登出、工作階段失效時清除角標
       if (evt === "SIGNED_IN" || evt === "SIGNED_OUT") loadMe(s);
     });
     return () => sub.subscription.unsubscribe();
@@ -43,7 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthState = {
     session, me, loading, error,
     reload: () => loadMe(session),
-    signOut: async () => { await supabase.auth.signOut(); },
+    // V5.9.1：登出前停用此裝置在目前帳號的推播訂閱，並清除角標
+    signOut: async () => { await unregisterPushOnLogout(); await stopBadge(); await supabase.auth.signOut(); },
     has: (r) => !!me?.roles.includes(r),
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

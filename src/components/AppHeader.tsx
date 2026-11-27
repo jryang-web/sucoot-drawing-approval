@@ -16,7 +16,7 @@ export default function AppHeader() {
         </span>
         <span className="app-header__divider" aria-hidden="true" />
         <span className="app-header__system">
-          圖面申請與審核<small>V5.9</small>
+          圖面申請與審核<small>V5.9.1</small>
         </span>
       </div>
     </header>

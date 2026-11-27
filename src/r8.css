@@ -17,3 +17,6 @@
 
 .tab{text-decoration:none}.frame-shell>.r8-screen{padding:14px}.content{max-width:1360px}.r8-work button{margin:4px}.r8-identity{padding:12px}
 .r8-admin{display:grid;grid-template-columns:180px 1fr;gap:16px}.r8-admin .side{display:flex;flex-direction:column;gap:12px;background:white;border-radius:14px;padding:16px}.r8-admin .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}@media(max-width:740px){.r8-admin,.r8-admin .cols{grid-template-columns:1fr}.r8-admin .side{flex-direction:row;overflow-x:auto}}
+
+/* V5.9.1 待辦＋未讀計數 */
+.nav-count{display:inline-block;min-width:22px;margin-left:8px;padding:1px 7px;border-radius:11px;background:#d9363e;color:#fff;font-size:12px;font-weight:700;line-height:18px;text-align:center;vertical-align:1px}

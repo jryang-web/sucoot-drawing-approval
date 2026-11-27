@@ -30,7 +30,7 @@ export default function Login({ notice }: { notice?: string | null }) {
           <ErrorBox error={error} />
           <div style={{ marginTop: 12 }}><button className="primary" disabled={busy} style={{ width: "100%" }}>登入</button></div>
         </form>
-        <p className="muted">帳號由系統管理員建立；忘記密碼請洽系統管理員重設。</p>
+        <p className="muted">忘記密碼請聯絡系統管理員</p>
       </div>
     </main>
   );
