@@ -222,3 +222,9 @@
 | 推播尚未設定時的畫面 | 伺服器未設定 Secrets（`GET push-dispatch` 回 `publicKey: null`）時，不顯示會失敗的「啟用通知」按鈕，改顯示「背景通知尚未開放」；App 內計數不受影響 | C11 ✅ |
 
 回歸：V5.9.1 瀏覽器 42/42、V5.8 9/9、V5.9 e2e 16/16、型別檢查／ESLint／建置 ✅。
+
+## 10. 上線後問題：管理員設定部門主管出現「權限不足」（2026-11-27）
+
+- **原因**：正式資料庫 8 個 RPC 的 `authenticated` 執行權限在 migration 紀錄之外被移除（11/26 前即已存在，非 V5.9／V5.9.1 migration 造成）：`admin_set_roles`、`admin_set_manager_departments`、`admin_update_employee`、`admin_upsert_department`、`admin_create_delegation`、`admin_revoke_delegation`、`admin_release_claim`、`cancel_request`。日誌錯誤：`permission denied for function admin_set_roles`（42501）。
+- **修正**：migration 034 `v591_restore_rpc_grants` 恢復與 repo 定義相同的授權（只授予 `authenticated`，不授予 `anon`）；各函式內仍驗證 SYS_ADMIN／本人。
+- **驗證**：以 repo 全部 migration 建立的隔離資料庫為基準，比對正式環境 public schema 63 個函式的 `anon`／`authenticated` 執行權限：修正前 8 項不同、修正後 **0 項不同**。
