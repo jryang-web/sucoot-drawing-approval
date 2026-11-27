@@ -199,3 +199,17 @@
 - 連正式 Supabase 的本機方式為 `npm run build -- --mode pages` 後 `npm run preview`；建置時會檢查 `.env.local`（網址須為本專案、金鑰須為本專案公開金鑰），錯誤即拒絕建置（已驗證正、反兩種情況）。
 - 新增 `本機預覽.cmd`（雙擊執行上述流程，並在套件版本不符時自動重新安裝）。**此檔未在 Windows 實際執行**（本環境為 Linux），需於使用者電腦確認一次。
 - 登入頁文字為「帳號由系統管理員建立；忘記密碼請洽系統管理員重設」，與 `AGENTS.md` 規定的「忘記密碼請聯絡系統管理員」不完全相同（V5.8 既有內容，未修改，待使用者決定）。
+
+## 8. 正式部署紀錄：步驟 1–3（2026-11-27，經使用者授權）
+
+| 步驟 | 內容 | 結果 |
+|---|---|---|
+| 發布前核對（唯讀） | migration 30 筆、最新 `v59_product_master_safeupdate`；migration 032 依賴的 10 個函式（`l1_authority`、`has_role`、`require_employee` 等）與 repo 版本 md5 完全相同；`personal_security_notices` 欄位相同；尚無 V5.9.1 物件 | ✅ |
+| 1. 套用 migration 032 | `v591_badge_and_push`（版本 `20261127051332`），內容與 commit `ca0a7df` 的檔案相同；migration 紀錄 30 → 31 | ✅ |
+| 2. 權限核對 | 4 張新表 `anon`／`authenticated` 無權限、RLS 啟用；員工函式僅 `authenticated`、發送端僅 `service_role`、內部函式無人可直接執行；全部 `search_path=''`；`write_r8_application` 仍無 `authenticated` 直接執行權；safeupdate 掃描 0 筆；7 位啟用員工角標皆可計算；安全建議無新類別 | ✅ |
+| 3. 部署 `push-dispatch` | 版本 1、ACTIVE、`verify_jwt=false`；檔案與 commit `ca0a7df` 相同 | ✅ |
+| 部署後檢查（不會發送） | OPTIONS 200；GET 回 `publicKey: null`（尚未設定 Secrets）；未登入、錯誤排程密鑰、偽造 JWT 皆 401；PUT 405；佇列／訂閱／發送紀錄／錯誤皆 0；函式日誌無錯誤。**`index.ts` 已在 Supabase Edge（Deno）實際執行** | ✅ |
+
+**未執行（需另行授權或由維護人員操作）**：Secrets（VAPID 金鑰、`VAPID_SUBJECT`、`PUSH_CRON_SECRET`）、Vault、排程、合併前端與部署網站、實機驗收。
+
+**目前正式環境狀態**：案件異動時會依權限排入推播佇列，但因尚無任何裝置訂閱（新前端未上線）且未設定 Secrets，不會發送任何推播。既有 V5.9 網站不呼叫新函式，行為不變。回復方式見 `docs/release-v591.md` 第 4 節（此時只需執行第 3、4 步：刪除函式與回復 SQL）。
