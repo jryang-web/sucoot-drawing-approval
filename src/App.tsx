@@ -27,6 +27,7 @@ import PwaBanner from "./components/PwaBanner";
 import AppHeader from "./components/AppHeader";
 import BadgeSync from "./components/BadgeSync";
 import { PushSettings } from "./components/NotificationSettings";
+import { DelegationSettings } from "./components/DelegationSettings";
 import { useBadge } from "./lib/badge";
 
 
@@ -77,7 +78,7 @@ export default function App() {
           <Route path="/admin/products" element={guard("SYS_ADMIN", <ProductMaster />)} />
           <Route path="/admin/push" element={guard("SYS_ADMIN", <PushLog />)} />
           <Route path="/report" element={guard("DRAWING_STAFF", <DrawingReport />)} />
-          <Route path="/password" element={<ChangePassword before={<PushSettings key={me.id} />} />} />
+          <Route path="/password" element={<ChangePassword before={<><PushSettings key={me.id} /><DelegationSettings key={"d" + me.id} /></>} />} />
           <Route path="*" element={<Navigate to="/my" replace />} />
         </Routes>
       </div></div><div className="bottom"><Footer /><button className="logout" onClick={signOut}>登出</button></div></main></div>
