@@ -7,7 +7,7 @@ declare module "pg" {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 測試替身：查詢結果欄位依 SQL 而定
   interface QueryResult { rows: any[] }
   interface Client { query(sql: string, params?: unknown[]): Promise<QueryResult>; release(): void }
-  class Pool { constructor(o: object); connect(): Promise<Client>; query(sql: string, params?: unknown[]): Promise<QueryResult>; end(): Promise<void> }
-  const pg: { Pool: typeof Pool };
+  interface Pool { connect(): Promise<Client>; query(sql: string, params?: unknown[]): Promise<QueryResult>; end(): Promise<void> }
+  const pg: { Pool: new (o: object) => Pool };
   export default pg;
 }

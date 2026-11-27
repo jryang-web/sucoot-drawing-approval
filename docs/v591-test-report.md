@@ -160,3 +160,42 @@
 | 舊版 API 金鑰期限 | `push-dispatch` 與正式的 `admin-accounts` 相同，讀取 `SUPABASE_SERVICE_ROLE_KEY`／`SUPABASE_ANON_KEY`。Supabase 文件說明舊版金鑰保留至 2026 年底；停用前兩個函式都須改讀 `SUPABASE_SECRET_KEYS`／`SUPABASE_PUBLISHABLE_KEYS`（另案處理） |
 | Deno 實際執行 | `index.ts` 仍未在 Deno／Supabase Edge 執行；核心模組已以 Node 22 測試 |
 | 實機 | T25 iPhone、T26 Android 仍未測 |
+
+## 7. 套件安全更新與本機預覽（2026-11-27 第三輪）
+
+### 7.1 套件更新（同一大版本內、固定版本號；未使用 `npm audit fix`）
+
+| 套件 | 原版本 | 新版本 | 是否進入正式網站 | 處理的問題 |
+|---|---|---|---|---|
+| `react-router-dom` | 6.26.2 | 6.30.6 | 是 | 高風險：不受信任路徑的外部轉址 |
+| `fflate` | 0.8.2 | 0.8.3 | 是（管理員 Excel 匯入） | 中風險：異常 ZIP64 檔案可能無限迴圈 |
+| `@supabase/supabase-js` | 2.45.4 | 2.50.0 | 是 | 低風險：auth-js 異常路徑（選擇最小修正版，避免 2.119 的大幅變動） |
+| `vite`、`@vitejs/plugin-react` | 5.4.10、4.3.2 | 5.4.21、4.7.0 | 否（開發工具） | 開發伺服器相關 |
+| `vitest` | 2.1.3 | 2.1.9 | 否 | 測試工具 |
+| `eslint`、`@eslint/js`、`typescript-eslint` | 9.13.0、9.13.0、8.11.0 | 9.39.5、9.39.5、8.74.0 | 否 | 檢查工具（ESLint 9.13 已停止支援） |
+
+結果：漏洞 **20 → 9**（重大 2、高 1、中 6、低 0）。剩餘項目都需要升級大版本（vite 8、vitest 5、react-router 7），不在本次範圍：
+
+| 剩餘 | 影響 | 說明 |
+|---|---|---|
+| vite／esbuild／vite-node | 只在本機開發 | 開發伺服器執行期間的風險；正式網站為靜態檔案，不含開發伺服器 |
+| vitest／tinypool／@vitest/mocker | 只在測試工具 | 專案平時不啟動 vitest；CI 也未執行 |
+| react-router（中） | 正式網站 | 需 `<Link>`／`navigate()` 使用不受信任的目標才會發生；程式中所有導覽目標皆為內部固定路徑或案件 UUID，推播點擊路由另有白名單 → 實際暴露極低 |
+
+### 7.2 更新後回歸
+
+| 測試 | 結果 |
+|---|---|
+| `npm run check`（型別檢查＋ESLint）、建置、推播模組型別檢查 | ✅ |
+| V5.8 回歸 | ✅ 9/9 |
+| V5.9 端對端（Excel 匯入使用 fflate、登入使用 supabase-js、路由） | ✅ 16/16 |
+| V5.9 手機版面＋錯誤檔／WebKit 產品搜尋 | ✅ 19/19、25/25 |
+| V5.9.1 瀏覽器 | ✅ 40/40 |
+| pages 模式建置連正式 Supabase（未登入、唯讀）：連線、公開註冊關閉、未登入讀不到資料、桌面／iPhone／Android 登入畫面、Console、Service Worker | ✅ 32/32 |
+
+### 7.3 本機環境發現
+
+- 本機 `npm run dev` 不讀取 `.env.local`，而是連到本機 API（`127.0.0.1:54329`，需 Linux＋Docker）；在 Windows 會無法登入。
+- 連正式 Supabase 的本機方式為 `npm run build -- --mode pages` 後 `npm run preview`；建置時會檢查 `.env.local`（網址須為本專案、金鑰須為本專案公開金鑰），錯誤即拒絕建置（已驗證正、反兩種情況）。
+- 新增 `本機預覽.cmd`（雙擊執行上述流程，並在套件版本不符時自動重新安裝）。**此檔未在 Windows 實際執行**（本環境為 Linux），需於使用者電腦確認一次。
+- 登入頁文字為「帳號由系統管理員建立；忘記密碼請洽系統管理員重設」，與 `AGENTS.md` 規定的「忘記密碼請聯絡系統管理員」不完全相同（V5.8 既有內容，未修改，待使用者決定）。
