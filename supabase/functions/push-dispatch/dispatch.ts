@@ -17,16 +17,23 @@ export interface Store {
 const KIND_LABEL: Record<string, string> = {
   L1: "第一層待審", L2: "第二層待審", ISSUE: "圖面待發行", RETURNED: "退回補件", RECEIPT: "待簽收", ABNORMAL: "整案異常待辦",
 };
+// V5.9.2 案件結果通知（不顯示案件編號，只顯示類別摘要）
+const RESULT_LABEL: Record<string, string> = {
+  R_REJECTED: "申請已駁回", R_FORCE_CLOSED: "案件已結案", R_CANCELLED: "申請已取消", R_RECEIPT_DONE: "已完成簽收",
+};
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 // 通知內容：只有待辦類別與數量，不含案件編號、申請人、產品明細等資料
 export function buildPayload(b: Batch) {
+  const result = RESULT_LABEL[b.kind];
   const label = KIND_LABEL[b.kind] ?? "待辦";
+  const body = b.count > 1 ? `有 ${b.count} 則新的通知`
+    : result ? `有 1 則「${result}」通知` : `有 1 件「${label}」案件等待處理`;
   return {
     v: 1,
     badge: Math.max(0, Math.min(b.badge | 0, 9999)),
     title: "SUCOOT 圖面申請",
-    body: b.count === 1 ? `有 1 件「${label}」案件等待處理` : `有 ${b.count} 件新的待辦案件`,
+    body,
     url: b.count === 1 && UUID.test(b.request_id) ? `#/r/${b.request_id}` : "#/my",
     tag: "sucoot-pending",
   };

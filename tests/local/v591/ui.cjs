@@ -176,6 +176,33 @@ async function hideShow(page) {
     await ctx.close();
   }
 
+  // ================= V5.9.2 案件通知：駁回後申請人看到通知、標為已讀角標下降
+  {
+    const ctx = await br.newContext({ viewport: { width: 1366, height: 900 } });
+    await ctx.addInitScript(badgeSpy(false));
+    const page = await ctx.newPage();
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    const rid = await submitAs("TEST001");
+    const ver = (await q("select version from public.drawing_requests where id = $1", [rid]))[0].version;
+    const key = crypto.randomUUID();
+    await asEmployee("TEST003", "select public.prepare_operation($1, 'review_level1', $2::jsonb) as r",
+      [key, JSON.stringify({ p_id: rid, p_action: "REJECT", p_comment: "測試駁回", p_expected_version: ver })]);
+    await asEmployee("TEST003", "select public.execute_operation($1) as r", [key]);
+    const reqNo = (await q("select request_no from public.drawing_requests where id = $1", [rid]))[0].request_no;
+    await login(page, "TEST001");
+    await page.waitForSelector('[aria-label="案件通知"] .r8-case-row', { timeout: 10000 }).catch(() => {});
+    const card = await page.textContent('[aria-label="案件通知"]');
+    const before = await total("TEST001");
+    check("N4 案件通知卡片：顯示「申請已駁回」、案件編號、未讀", card.includes("申請已駁回") && card.includes(reqNo) && card.includes("未讀"), card.slice(0, 160));
+    check("N5 角標包含未讀案件通知", (await lastBadge(page))?.[1] === before, `${JSON.stringify(await lastBadge(page))} vs ${before}`);
+    await page.screenshot({ path: `${out}/09-案件通知.png` });
+    await page.locator('[aria-label="案件通知"] .r8-case-row', { hasText: reqNo }).locator('button:has-text("標為已讀")').click();
+    await page.waitForFunction((n) => (window.__badge.at(-1)?.[1] ?? 0) === n || (n === 0 && window.__badge.at(-1)?.[0] === "clear"), before - 1, { timeout: 8000 }).catch(() => {});
+    check("N6 標為已讀後角標下降 1", ((await lastBadge(page))?.[1] ?? 0) === before - 1 && (await total("TEST001")) === before - 1, JSON.stringify(await lastBadge(page)));
+    check("N7 無 JavaScript 錯誤（案件通知）", errors.length === 0, errors.join("; "));
+    await ctx.close();
+  }
+
   // ================= T16：不支援 Badging API 的瀏覽器
   {
     const ctx = await br.newContext({ viewport: { width: 1366, height: 900 } });

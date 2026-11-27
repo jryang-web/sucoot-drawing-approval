@@ -8,6 +8,7 @@ import { STATUS_LABEL } from "../lib/labels";
 import type { RequestRow } from "../lib/types";
 import { ErrorBox } from "../components/ui";
 import { NotificationSettings } from "../components/NotificationSettings";
+import { CaseNotices } from "../components/CaseNotices";
 import { requestBadgeRefresh } from "../lib/badge";
 
 type WorkRequest = RequestRow & { approved_l1_by_me: boolean };
@@ -49,6 +50,7 @@ export default function R8Home() {
   return <><ErrorBox error={error}/><section className="r8-card"><h2>我的工作</h2><div className="r8-metrics">{[{label:"我的案件",rows:rows.filter(r=>r.applicant_id===me.id)},...groups].map(g=><div className="r8-meter" key={g.label}><strong>{g.rows.length}</strong>{g.label}</div>)}</div></section>
     <section className="r8-card"><h2>目前待辦（{tasks.length}）</h2>{tasks.length?tasks.map(row):"目前沒有待辦。"}</section>
     <NotificationSettings key={"n"+me.id}/>
+    <CaseNotices key={"c"+me.id}/>
     <SecurityNotices key={me.id}/>
     <section className="r8-card"><h2>案件查詢與權限可視化</h2>{rows.map(row)}</section></>;
 }
